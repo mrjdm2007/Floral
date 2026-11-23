@@ -14,11 +14,9 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.background
-import androidx.glance.cornerRadius
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
-import androidx.glance.layout.defaultWeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
 import androidx.glance.text.Text
@@ -40,12 +38,11 @@ class FloralWidget : GlanceAppWidget() {
         Row(
             modifier = GlanceModifier.fillMaxSize()
                 .background(Color(0xFF173C2B))
-                .cornerRadius(18.dp)
                 .clickable(actionStartActivity(intent))
                 .padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = GlanceModifier.defaultWeight()) {
+            Column(modifier = GlanceModifier.fillMaxSize()) {
                 Text("FLORAL", style = TextStyle(color = ColorProvider(Color(0xFFA8C9A7)), fontSize = 11.sp))
                 Text("＋ Add new order", style = TextStyle(color = ColorProvider(Color(0xFFF3EAD2)), fontSize = 16.sp))
                 Text("Quick order entry", style = TextStyle(color = ColorProvider(Color(0xFFD0DED2)), fontSize = 10.sp))
