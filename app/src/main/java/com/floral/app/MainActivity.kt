@@ -71,6 +71,7 @@ class MainActivity:ComponentActivity(){
    var nurseryToEdit by remember { mutableStateOf<Nursery?>(null) }
    var plantToEdit by remember { mutableStateOf<NurseryPlant?>(null) }
    var plantEditor by remember { mutableStateOf(false) }
+   var fromAddress by remember { mutableStateOf(getSharedPreferences("floral_settings", MODE_PRIVATE).getString("from_address", "") ?: "") }
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
     Surface(Modifier.fillMaxSize(),color=Deep){
      when {
@@ -96,12 +97,25 @@ class MainActivity:ComponentActivity(){
         FilledIconButton(onClick={editing=null;editor=true},colors=IconButtonDefaults.filledIconButtonColors(containerColor=Forest,contentColor=Cream)){Icon(Icons.Default.Add,"Add order")}
        }
        Spacer(Modifier.height(16.dp))
-       Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Overview","Orders","Finances","Nurseries").forEach{FilterChip(selected=page==it,onClick={page=it},label={Text(it,fontSize=12.sp)})}}
+       Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Overview","Orders","Finances","Nurseries","Print","Settings").forEach{FilterChip(selected=page==it,onClick={page=it},label={Text(it,fontSize=12.sp)})}}
        Spacer(Modifier.height(12.dp))
        when(page){
         "Overview"->Overview(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
         "Finances"->Finance(orders)
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
+        "Print"->PrintAddresses(orders,fromAddress,{page="Orders"}){selectedOrders->
+         runCatching {
+          val file=AddressLabelPdf.create(this@MainActivity,selectedOrders,fromAddress)
+          val uri=FileProvider.getUriForFile(this@MainActivity,"${packageName}.fileprovider",file)
+          val share=Intent(Intent.ACTION_SEND).apply { type="application/pdf";putExtra(Intent.EXTRA_STREAM,uri);addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+          startActivity(Intent.createChooser(share,"Share address labels PDF"))
+         }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not create PDF",android.widget.Toast.LENGTH_LONG).show() }
+        }
+        "Settings"->SenderAddressSettings(fromAddress){value->
+         getSharedPreferences("floral_settings", MODE_PRIVATE).edit().putString("from_address",value).apply()
+         fromAddress=value
+         android.widget.Toast.makeText(this@MainActivity,"Sender address saved",android.widget.Toast.LENGTH_SHORT).show()
+        }
         else->OrderList(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
        }
       }
@@ -264,7 +278,7 @@ class MainActivity:ComponentActivity(){
 @Composable private fun OrderEditor(order:Order?,cancel:()->Unit,save:(Order)->Unit){
  var name by remember{mutableStateOf(order?.customerName.orEmpty())};var phone by remember{mutableStateOf(order?.phone.orEmpty())};var address by remember{mutableStateOf(order?.address.orEmpty())};var plant by remember{mutableStateOf(order?.plantName.orEmpty())};var photo by remember{mutableStateOf(order?.photoUri.orEmpty())}
  var cost by remember{mutableStateOf(order?.plantCost?.toString().orEmpty())};var selling by remember{mutableStateOf(order?.sellingPrice?.toString().orEmpty())};var finalPrice by remember{mutableStateOf(order?.finalPrice?.toString().orEmpty())};var courier by remember{mutableStateOf(order?.courierCharge?.toString().orEmpty())}
- var expected by remember{mutableStateOf(order?.expectedDispatchAt)};var dispatched by remember{mutableStateOf(order?.dispatchedAt)};var notes by remember{mutableStateOf(order?.notes.orEmpty())}
+ var expected by remember{mutableStateOf(order?.expectedDispatchAt)};var dispatched by remember{mutableStateOf(order?.dispatchedAt)};var notes by remember{mutableStateOf(order?.notes.orEmpty())};var includeFrom by remember{mutableStateOf(order?.includeFromAddress?:false)}
  val context=androidx.compose.ui.platform.LocalContext.current
  val picker=androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null){runCatching{context.contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)};photo=uri.toString()}}
  val missing=buildList{if(name.isBlank())add("Customer name");if(phone.isBlank())add("Phone number");if(address.isBlank())add("Delivery address");if(plant.isBlank())add("Plant name");if(photo.isBlank())add("Plant photograph");if(cost.toDoubleOrNull()==null)add("Actual plant cost");if(selling.toDoubleOrNull()==null)add("Selling price");if(finalPrice.toDoubleOrNull()==null)add("Final customer price");if(courier.toDoubleOrNull()==null)add("Courier charges");if(expected==null)add("Expected dispatch date");if(dispatched==null)add("Actual dispatch date")}
@@ -278,9 +292,10 @@ class MainActivity:ComponentActivity(){
   Text("Order total when both are known: ${money((selling.toDoubleOrNull()?:0.0)+(courier.toDoubleOrNull()?:0.0))}",color=Leaf,fontSize=12.sp)
   Text("Dispatch details",color=Cream,fontWeight=FontWeight.SemiBold)
   DateField("Expected dispatch date",expected){expected=it};DateField("Actual dispatch date",dispatched){dispatched=it}
+  Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Checkbox(checked=includeFrom,onCheckedChange={includeFrom=it});Text("Include saved FROM address on parcel label",color=Cream,fontSize=13.sp)}
   Field("Notes / remarks for this order",notes,false){notes=it}
   Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(17.dp)){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(3.dp)){Text("Still to be entered · ${missing.size}",color=Cream,fontWeight=FontWeight.SemiBold);if(missing.isEmpty())Text("Everything is filled in.",color=Leaf,fontSize=12.sp);missing.forEach{Text("• $it",color=Leaf,fontSize=12.sp)}}}
-  Button(onClick={save(Order(id=order?.id?:0,customerName=name.trim().ifBlank{null},phone=phone.trim().ifBlank{null},address=address.trim().ifBlank{null},plantName=plant.trim().ifBlank{null},photoUri=photo.ifBlank{null},plantCost=cost.toDoubleOrNull(),sellingPrice=selling.toDoubleOrNull(),finalPrice=finalPrice.toDoubleOrNull(),courierCharge=courier.toDoubleOrNull(),expectedDispatchAt=expected,dispatchedAt=dispatched,isReceived=order?.isReceived?:false,notes=notes,createdAt=order?.createdAt?:System.currentTimeMillis()))},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)){Text("Save order",fontWeight=FontWeight.SemiBold)}
+  Button(onClick={save(Order(id=order?.id?:0,customerName=name.trim().ifBlank{null},phone=phone.trim().ifBlank{null},address=address.trim().ifBlank{null},plantName=plant.trim().ifBlank{null},photoUri=photo.ifBlank{null},plantCost=cost.toDoubleOrNull(),sellingPrice=selling.toDoubleOrNull(),finalPrice=finalPrice.toDoubleOrNull(),courierCharge=courier.toDoubleOrNull(),expectedDispatchAt=expected,dispatchedAt=dispatched,isReceived=order?.isReceived?:false,notes=notes,includeFromAddress=includeFrom,createdAt=order?.createdAt?:System.currentTimeMillis()))},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)){Text("Save order",fontWeight=FontWeight.SemiBold)}
  }
 }
 @Composable private fun Field(label:String,value:String,single:Boolean=true,type:KeyboardType=KeyboardType.Text,onChange:(String)->Unit){OutlinedTextField(value,onChange,label={Text(label)},modifier=Modifier.fillMaxWidth(),singleLine=single,keyboardOptions=KeyboardOptions(keyboardType=type),colors=OutlinedTextFieldDefaults.colors(focusedTextColor=Cream,unfocusedTextColor=Cream,focusedBorderColor=Leaf,unfocusedBorderColor=Muted.copy(alpha=.5f),focusedLabelColor=Leaf,unfocusedLabelColor=Muted,cursorColor=Leaf))}
