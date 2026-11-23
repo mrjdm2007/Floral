@@ -72,7 +72,8 @@ class MainActivity:ComponentActivity(){
    var nurseryToEdit by remember { mutableStateOf<Nursery?>(null) }
    var plantToEdit by remember { mutableStateOf<NurseryPlant?>(null) }
    var plantEditor by remember { mutableStateOf(false) }
-   var fromAddress by remember { mutableStateOf(getSharedPreferences("floral_settings", MODE_PRIVATE).getString("from_address", "") ?: "") }\n   var printPdf by remember { mutableStateOf<File?>(null) }
+   var fromAddress by remember { mutableStateOf(getSharedPreferences("floral_settings", MODE_PRIVATE).getString("from_address", "") ?: "") }
+   var printPdf by remember { mutableStateOf<File?>(null) }
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
     Surface(Modifier.fillMaxSize(),color=Deep){
      when {
