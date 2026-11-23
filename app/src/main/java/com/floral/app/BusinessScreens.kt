@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.floral.app.data.Order
 import com.floral.app.data.Nursery
+import com.floral.app.data.OrderPlant
 import java.util.Calendar
 
 private val BizCream = Color(0xFFF3EAD2)
@@ -131,11 +132,11 @@ fun DispatchCalendar(orders: List<Order>, openOrder: (Order) -> Unit) {
 }
 
 @Composable
-fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, onOpenOrder: (Order) -> Unit) {
+fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, plants: List<OrderPlant>, onOpenOrder: (Order) -> Unit) {
     var query by remember { mutableStateOf("") }
     val matches = if (query.isBlank()) emptyList() else orders.filter { o ->
         listOfNotNull(o.customerName, o.phone, o.address, o.plantName, o.notes)
-            .any { it.contains(query, true) }
+            .any { it.contains(query, true) } || plants.any { it.orderId == o.id && it.name.contains(query, true) }
     }
     val nurseryMatches = if (query.isBlank()) emptyList() else nurseries.filter { n ->
         listOfNotNull(n.name, n.address, n.phone).any { it.contains(query, true) }
@@ -150,7 +151,7 @@ fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, onOpenOrder: (Or
                 Card(Modifier.fillMaxWidth().clickable { onOpenOrder(order) },
                     colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(12.dp)) {
-                        Text(order.plantName ?: "Plant order", color = BizCream, fontWeight = FontWeight.SemiBold)
+                        Text(plants.filter { it.orderId == order.id }.joinToString(", ") { it.name }.ifBlank { order.plantName ?: "Plant order" }, color = BizCream, fontWeight = FontWeight.SemiBold)
                         Text(order.customerName ?: "Customer not entered", color = BizLeaf, fontSize = 12.sp)
                         Text(order.phone ?: "No phone number", color = BizMuted, fontSize = 11.sp)
                     }
