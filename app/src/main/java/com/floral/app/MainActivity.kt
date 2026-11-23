@@ -90,7 +90,7 @@ class MainActivity:ComponentActivity(){
      printPdf != null -> printPdf = null
      plantEditor -> { plantEditor = false; plantToEdit = null }
      nurseryEditor -> { nurseryEditor = false; nurseryToEdit = null }
-     editor -> { editor = false; editing = null }
+     editor -> { editor = false; editing = null; editingPlants = emptyList() }
      selectedNursery != null -> selectedNursery = null
      page != "Overview" -> page = "Overview"
     }
@@ -98,8 +98,14 @@ class MainActivity:ComponentActivity(){
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
     Surface(Modifier.fillMaxSize(),color=Deep){
      when {
-      editor -> OrderEditor(editing,{editor=false;editing=null}){o->
-       lifecycleScope.launch { val id=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id};if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt);editor=false;editing=null }
+      editor -> MultiPlantOrderEditor(editing,editingPlants,{editor=false;editing=null;editingPlants=emptyList()}){o,plants->
+       lifecycleScope.launch {
+        val id=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id}
+        orderPlantDao.deleteForOrder(id)
+        orderPlantDao.insertAll(plants.map { p -> OrderPlant(orderId=id,name=p.name,plantCost=p.cost.toDoubleOrNull(),sellingPrice=p.selling.toDoubleOrNull(),finalPrice=p.finalPrice.toDoubleOrNull(),isPaid=p.paid) })
+        if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt)
+        editor=false;editing=null;editingPlants=emptyList()
+       }
       }
       nurseryEditor -> NurseryEditor(nurseryToEdit,{nurseryEditor=false;nurseryToEdit=null}){n->
        lifecycleScope.launch { val id=if(n.id==0L)nurseryDao.insert(n) else {nurseryDao.update(n);n.id};selectedNursery=nurseryDao.get(id);nurseryEditor=false;nurseryToEdit=null }
@@ -117,7 +123,7 @@ class MainActivity:ComponentActivity(){
       else -> Scaffold(
        containerColor=Deep,
        floatingActionButton={
-        FloatingActionButton(onClick={editing=null;editingPlants=emptyList();editor=true,containerColor=Leaf,contentColor=Deep){
+        FloatingActionButton(onClick={editing=null;editingPlants=emptyList();editor=true},containerColor=Leaf,contentColor=Deep){
          Icon(Icons.Default.Add,contentDescription="Add order")
         }
        }
