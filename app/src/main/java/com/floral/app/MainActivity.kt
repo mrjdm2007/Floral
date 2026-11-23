@@ -266,7 +266,7 @@ class MainActivity:ComponentActivity(){
 @Composable private fun NurseryDetail(nursery:Nursery,dao:NurseryDao,onBack:()->Unit,onEdit:()->Unit,onAddPlant:()->Unit,onEditPlant:(NurseryPlant)->Unit,onDeletePlant:(NurseryPlant)->Unit){
  val plants by dao.observePlants(nursery.id).collectAsStateWithLifecycle(emptyList())
  val context = androidx.compose.ui.platform.LocalContext.current
- Column(Modifier.fillMaxSize().padding(16.dp)){
+ Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(top=12.dp).padding(horizontal=16.dp)){
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){TextButton(onClick=onBack){Icon(Icons.Default.ArrowBack,null);Text("Nurseries")};TextButton(onClick=onEdit){Icon(Icons.Default.Edit,null);Text("Edit profile")}}
   LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=24.dp)){
    item {
@@ -308,7 +308,7 @@ class MainActivity:ComponentActivity(){
  val gallery=androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){u->if(u!=null){runCatching{context.contentResolver.takePersistableUriPermission(u,Intent.FLAG_GRANT_READ_URI_PERMISSION)};photo=u.toString()}}
  val camera=androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()){ok->if(ok&&pendingCameraUri!=null){photo=pendingCameraUri.toString();if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED||ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED)captureLocation()else permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}}
  fun takePhoto(){try{val dir=File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES),"nurseries").apply{mkdirs()};val file=File.createTempFile("nursery_${System.currentTimeMillis()}_",".jpg",dir);val uri=FileProvider.getUriForFile(context,"${context.packageName}.fileprovider",file);pendingCameraUri=uri;camera.launch(uri)}catch(e:Exception){locationStatus="Camera could not be opened. Choose a photo from the gallery instead."}}
- Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+ Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).verticalScroll(rememberScrollState()).padding(top=12.dp).padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(existing==null)"New nursery" else "Edit nursery",color=Cream,fontSize=24.sp,fontWeight=FontWeight.SemiBold);TextButton(onClick=cancel){Text("Cancel")}}
   Text("All details are optional. Save the profile now and add plants whenever you visit.",color=Leaf,fontSize=12.sp)
   if(photo.isNotBlank())AsyncImage(Uri.parse(photo),null,Modifier.fillMaxWidth().heightIn(max=220.dp))
@@ -347,7 +347,7 @@ class MainActivity:ComponentActivity(){
  val context=androidx.compose.ui.platform.LocalContext.current
  val picker=androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null){runCatching{context.contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)};photo=uri.toString()}}
  val missing=buildList{if(name.isBlank())add("Customer name");if(phone.isBlank())add("Phone number");if(address.isBlank())add("Delivery address");if(plant.isBlank())add("Plant name");if(photo.isBlank())add("Plant photograph");if(cost.toDoubleOrNull()==null)add("Actual plant cost");if(selling.toDoubleOrNull()==null)add("Selling price");if(finalPrice.toDoubleOrNull()==null)add("Final customer price");if(courier.toDoubleOrNull()==null)add("Courier charges");if(expected==null)add("Expected dispatch date");if(dispatched==null)add("Actual dispatch date")}
- Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
+ Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).verticalScroll(rememberScrollState()).padding(top=12.dp).padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(order==null)"New order" else "Edit order",color=Cream,fontSize=24.sp,fontWeight=FontWeight.SemiBold);TextButton(onClick=cancel){Text("Cancel")}}
   Text("Every field is optional. Save what you know and complete the rest later.",color=Leaf,fontSize=12.sp)
   Field("Customer name",name){name=it};Field("Phone number",phone,true,KeyboardType.Phone){phone=it};Field("Delivery address",address,false){address=it};Field("Plant name",plant){plant=it}
