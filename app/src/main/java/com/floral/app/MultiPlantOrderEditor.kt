@@ -170,7 +170,7 @@ fun MultiPlantOrderEditor(
 @Composable
 private fun OrderField(label: String, value: String, single: Boolean = true,
     type: KeyboardType = KeyboardType.Text, onChange: (String) -> Unit) {
-    OutlinedTextOrderField(value, onChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
+    OutlinedTextField(value, onChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
         singleLine = single, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = type),
         colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Cream, unfocusedTextColor = Cream,
             focusedBorderColor = Leaf, unfocusedBorderColor = Muted.copy(alpha = .5f),
