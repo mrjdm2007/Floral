@@ -152,8 +152,8 @@ class MainActivity:ComponentActivity(){
        Crossfade(targetState=page,label="tab-transition"){ activePage ->
        when(activePage){
         "Overview"->Overview(orders,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
-        "Customers"->CustomerHistory(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
-        "Calendar"->DispatchCalendar(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
+        "Customers"->CustomerHistory(orders,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
+        "Calendar"->DispatchCalendar(orders,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Search"->GlobalSearch(orders,nurseries,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Finances"->Finance(orders)
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
