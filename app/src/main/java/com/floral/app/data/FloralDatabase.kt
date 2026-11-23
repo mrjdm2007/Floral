@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Order::class, Nursery::class, NurseryPlant::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class FloralDatabase : RoomDatabase() {
@@ -17,6 +17,12 @@ abstract class FloralDatabase : RoomDatabase() {
     abstract fun nurseries(): NurseryDao
 
     companion object {
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE orders ADD COLUMN includeFromAddress INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
@@ -56,7 +62,7 @@ abstract class FloralDatabase : RoomDatabase() {
                 context.applicationContext,
                 FloralDatabase::class.java,
                 "floral.db"
-            ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
         }
     }
 }
