@@ -67,6 +67,7 @@ class MainActivity:ComponentActivity(){
   val db=FloralDatabase.get(this);val dao=db.orders();val nurseryDao=db.nurseries();val orderPlantDao=db.orderPlants()
   setContent {
    val orders by dao.observeAll().collectAsStateWithLifecycle(emptyList())
+   val allOrderPlants by orderPlantDao.observeAll().collectAsStateWithLifecycle(emptyList())
    LaunchedEffect(orders) {
     orders.forEach { order ->
      if (order.dispatchedAt != null) DispatchReminder.cancel(this@MainActivity, order.id)
@@ -153,7 +154,7 @@ class MainActivity:ComponentActivity(){
         "Overview"->Overview(orders,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
         "Customers"->CustomerHistory(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Calendar"->DispatchCalendar(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
-        "Search"->GlobalSearch(orders,nurseries){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
+        "Search"->GlobalSearch(orders,nurseries,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Finances"->Finance(orders)
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
         "Print"->Box(Modifier.fillMaxSize()) {
