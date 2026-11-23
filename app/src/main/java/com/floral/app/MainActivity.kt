@@ -15,6 +15,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,6 +67,12 @@ class MainActivity:ComponentActivity(){
   val db=FloralDatabase.get(this);val dao=db.orders();val nurseryDao=db.nurseries()
   setContent {
    val orders by dao.observeAll().collectAsStateWithLifecycle(emptyList())
+   LaunchedEffect(orders) {
+    orders.forEach { order ->
+     if (order.dispatchedAt != null) DispatchReminder.cancel(this@MainActivity, order.id)
+     else DispatchReminder.schedule(this@MainActivity, order.id, order.expectedDispatchAt)
+    }
+   }
    val nurseries by nurseryDao.observeAll().collectAsStateWithLifecycle(emptyList())
    var page by remember { mutableStateOf("Overview") }
    var editing by remember { mutableStateOf<Order?>(null) }
@@ -112,15 +121,28 @@ class MainActivity:ComponentActivity(){
         }
        }
       ) { innerPadding ->
-       Column(Modifier.fillMaxSize().padding(innerPadding).padding(18.dp)){
-       Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+       var swipeDistance by remember { mutableFloatStateOf(0f) }
+       Column(Modifier.fillMaxSize().padding(innerPadding).padding(18.dp).pointerInput(page) {
+        detectHorizontalDragGestures(
+         onHorizontalDrag={ _, amount -> swipeDistance += amount },
+         onDragEnd={
+          val tabs=listOf("Overview","Orders","Finances","Nurseries","Print","Settings")
+          val index=tabs.indexOf(page)
+          if(swipeDistance < -85f && index < tabs.lastIndex) page=tabs[index+1]
+          else if(swipeDistance > 85f && index > 0) page=tabs[index-1]
+          swipeDistance=0f
+         },
+         onDragCancel={swipeDistance=0f}
+        )
+       }){
+       Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
         Column { Text("Floral",color=Cream,fontSize=31.sp,fontWeight=FontWeight.SemiBold);Text("A LITTLE MORE ORGANIZED, EVERY DAY",color=Leaf,fontSize=9.sp,letterSpacing=1.5.sp) }
-        FilledIconButton(onClick={editing=null;editor=true},colors=IconButtonDefaults.filledIconButtonColors(containerColor=Forest,contentColor=Cream)){Icon(Icons.Default.Add,"Add order")}
        }
        Spacer(Modifier.height(16.dp))
        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Overview","Orders","Finances","Nurseries","Print","Settings").forEach{FilterChip(selected=page==it,onClick={page=it},label={Text(it,fontSize=12.sp)})}}
        Spacer(Modifier.height(12.dp))
-       when(page){
+       Crossfade(targetState=page,label="tab-transition"){ activePage ->
+       when(activePage){
         "Overview"->Overview(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
         "Finances"->Finance(orders)
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
@@ -148,6 +170,7 @@ class MainActivity:ComponentActivity(){
          android.widget.Toast.makeText(this@MainActivity,"Sender address saved",android.widget.Toast.LENGTH_SHORT).show()
         }
         else->OrderList(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
+       }
        }
        }
       }
