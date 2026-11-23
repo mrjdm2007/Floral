@@ -104,7 +104,15 @@ class MainActivity:ComponentActivity(){
        onEditPlant={plantToEdit=it;plantEditor=true},
        onDeletePlant={p->lifecycleScope.launch{nurseryDao.deletePlant(p.id)}}
       )
-      else -> Column(Modifier.fillMaxSize().padding(18.dp)){
+      else -> Scaffold(
+       containerColor=Deep,
+       floatingActionButton={
+        FloatingActionButton(onClick={editing=null;editor=true},containerColor=Leaf,contentColor=Deep){
+         Icon(Icons.Default.Add,contentDescription="Add order")
+        }
+       }
+      ) { innerPadding ->
+       Column(Modifier.fillMaxSize().padding(innerPadding).padding(18.dp)){
        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
         Column { Text("Floral",color=Cream,fontSize=31.sp,fontWeight=FontWeight.SemiBold);Text("A LITTLE MORE ORGANIZED, EVERY DAY",color=Leaf,fontSize=9.sp,letterSpacing=1.5.sp) }
         FilledIconButton(onClick={editing=null;editor=true},colors=IconButtonDefaults.filledIconButtonColors(containerColor=Forest,contentColor=Cream)){Icon(Icons.Default.Add,"Add order")}
@@ -140,6 +148,7 @@ class MainActivity:ComponentActivity(){
          android.widget.Toast.makeText(this@MainActivity,"Sender address saved",android.widget.Toast.LENGTH_SHORT).show()
         }
         else->OrderList(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
+       }
        }
       }
      }
