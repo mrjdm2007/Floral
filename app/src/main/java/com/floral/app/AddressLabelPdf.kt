@@ -37,7 +37,7 @@ object AddressLabelPdf {
         }
         data class Label(val fromLines: List<String>, val toLines: List<String>, val height: Float)
         val labels = orders.map { order ->
-            val from = if (order.includeFromAddress && savedFromAddress.isNotBlank()) wrap(savedFromAddress, body, colWidth - 22f) else emptyList()
+            val from = if (order.includeFromAddress && savedFromAddress.isNotBlank()) savedFromAddress.split(Regex("\\r?\\n")).flatMap { wrap(it, body, colWidth - 22f) } else emptyList()
             val toText = listOfNotNull(
                 order.customerName?.takeIf { it.isNotBlank() },
                 order.address?.takeIf { it.isNotBlank() },
