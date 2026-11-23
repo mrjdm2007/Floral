@@ -27,10 +27,25 @@ object AddressLabelPdf {
             if (text.isBlank()) return emptyList()
             val result = mutableListOf<String>()
             var line = ""
-            text.split(Regex("\\s+")).forEach { word ->
+            text.split(Regex("\\s+")).forEach { originalWord ->
+                var word = originalWord
                 val candidate = if (line.isEmpty()) word else "$line $word"
-                if (paint.measureText(candidate) <= width) line = candidate
-                else { if (line.isNotEmpty()) result.add(line); line = word }
+                if (paint.measureText(candidate) <= width) {
+                    line = candidate
+                    return@forEach
+                }
+                if (line.isNotEmpty()) {
+                    result.add(line)
+                    line = ""
+                }
+                // Split unusually long unbroken strings (for example, long email-like
+                // identifiers or copied address tokens) instead of drawing beyond the page.
+                while (paint.measureText(word) > width) {
+                    val count = paint.breakText(word, true, width, null).coerceAtLeast(1)
+                    result.add(word.substring(0, count))
+                    word = word.substring(count)
+                }
+                line = word
             }
             if (line.isNotEmpty()) result.add(line)
             return result
