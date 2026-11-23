@@ -17,7 +17,11 @@ object AddressLabelPdf {
         val colWidth = (pageWidth - margin * 2 - gap) / 2f
         val pdf = PdfDocument()
         val body = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.BLACK; textSize = 9.5f }
-        val heading = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.BLACK; textSize = 10f; typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD) }
+        val heading = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.BLACK
+            textSize = 10f
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+        }
         val small = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.DKGRAY; textSize = 8f }
         fun wrap(text: String, paint: Paint, width: Float): List<String> {
             if (text.isBlank()) return emptyList()
@@ -31,14 +35,18 @@ object AddressLabelPdf {
             if (line.isNotEmpty()) result.add(line)
             return result
         }
-        data class Label(val order: Order, val fromLines: List<String>, val toLines: List<String>, val height: Float)
+        data class Label(val fromLines: List<String>, val toLines: List<String>, val height: Float)
         val labels = orders.map { order ->
             val from = if (order.includeFromAddress && savedFromAddress.isNotBlank()) wrap(savedFromAddress, body, colWidth - 22f) else emptyList()
-            val toText = listOfNotNull(order.customerName?.takeIf { it.isNotBlank() }, order.address?.takeIf { it.isNotBlank() }, order.phone?.takeIf { it.isNotBlank() }?.let { "Phone: $it" }).joinToString("\n")
-            val to = toText.split("\n").flatMap { wrap(it, body, colWidth - 22f) }
-            val lines = from.size + to.size
-            Label(order, from, to, (58f + lines * 12f).coerceAtLeast(112f))
+            val toText = listOfNotNull(
+                order.customerName?.takeIf { it.isNotBlank() },
+                order.address?.takeIf { it.isNotBlank() },
+                order.phone?.takeIf { it.isNotBlank() }?.let { "Phone: $it" }
+            ).joinToString("\\n")
+            val to = toText.split("\\n").flatMap { wrap(it, body, colWidth - 22f) }
+            Label(from, to, (58f + (from.size + to.size) * 12f).coerceAtLeast(112f))
         }
+
         var pageNumber = 1
         var page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
         var canvas = page.canvas
@@ -50,6 +58,7 @@ object AddressLabelPdf {
             canvas = page.canvas
             y = margin
         }
+
         labels.chunked(2).forEach { row ->
             val rowHeight = row.maxOf { it.height }
             if (y + rowHeight > pageHeight - margin) finishPage()
@@ -79,35 +88,6 @@ object AddressLabelPdf {
                 canvas.drawText("Cut along the dashed border", left + 10f, bottom - 7f, small)
             }
             y += rowHeight + gap
-        }
-        pdf.finishPage(page)
-            pageNumber++
-            page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
-            canvas = page.canvas
-            y = margin
-            col = 0
-        }
-        labels.forEach { label ->
-            val x = margin + col * (colWidth + gap)
-            if (y + label.height > pageHeight - margin) {
-                if (col == 0) finishPage() else { col = 0; y += 0f; if (y + label.height > pageHeight - margin) finishPage() }
-            }
-            val left = margin + col * (colWidth + gap)
-            val top = y
-            val bottom = top + label.height
-            val cut = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.LTGRAY; style = Paint.Style.STROKE; strokeWidth = 0.8f; pathEffect = android.graphics.DashPathEffect(floatArrayOf(4f, 3f), 0f) }
-            canvas.drawRect(left, top, left + colWidth, bottom, cut)
-            var textY = top + 16f
-            if (label.fromLines.isNotEmpty()) {
-                canvas.drawText("FROM", left + 10f, textY, heading); textY += 13f
-                label.fromLines.forEach { canvas.drawText(it, left + 10f, textY, body); textY += 11f }
-                textY += 5f
-                canvas.drawLine(left + 10f, textY, left + colWidth - 10f, textY, small); textY += 13f
-            }
-            canvas.drawText("SHIP TO", left + 10f, textY, heading); textY += 14f
-            label.toLines.forEach { canvas.drawText(it, left + 10f, textY, body); textY += 12f }
-            canvas.drawText("Cut along the dashed border", left + 10f, bottom - 7f, small)
-            if (col == 0) col = 1 else { col = 0; y = bottom + gap }
         }
         pdf.finishPage(page)
         val out = File(context.cacheDir, "floral-address-labels.pdf")
