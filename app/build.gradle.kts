@@ -7,7 +7,7 @@ plugins {
 android {
  namespace = "com.floral.app"
  compileSdk = 35
- defaultConfig { applicationId = "com.floral.app"; minSdk = 26; targetSdk = 35; versionCode = 2; versionName = "1.1" }
+ defaultConfig { applicationId = "com.floral.app"; minSdk = 26; targetSdk = 35; versionCode = 3; versionName = "1.2" }
  buildFeatures { compose = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  kotlinOptions { jvmTarget = "17" }
@@ -29,5 +29,6 @@ dependencies {
  implementation("androidx.glance:glance-appwidget:1.1.1")
  implementation("androidx.glance:glance-material3:1.1.1")
  implementation("io.coil-kt:coil-compose:2.7.0")
+ implementation("com.google.android.gms:play-services-location:21.3.0")
 }
 kapt { correctErrorTypes = true }
