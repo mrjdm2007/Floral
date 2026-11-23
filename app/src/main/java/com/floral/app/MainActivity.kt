@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.Environment
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -74,6 +75,16 @@ class MainActivity:ComponentActivity(){
    var plantEditor by remember { mutableStateOf(false) }
    var fromAddress by remember { mutableStateOf(getSharedPreferences("floral_settings", MODE_PRIVATE).getString("from_address", "") ?: "") }
    var printPdf by remember { mutableStateOf<File?>(null) }
+   BackHandler(enabled = editor || nurseryEditor || plantEditor || selectedNursery != null || printPdf != null || page != "Overview") {
+    when {
+     printPdf != null -> printPdf = null
+     plantEditor -> { plantEditor = false; plantToEdit = null }
+     nurseryEditor -> { nurseryEditor = false; nurseryToEdit = null }
+     editor -> { editor = false; editing = null }
+     selectedNursery != null -> selectedNursery = null
+     page != "Overview" -> page = "Overview"
+    }
+   }
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
     Surface(Modifier.fillMaxSize(),color=Deep){
      when {
