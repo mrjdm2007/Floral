@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.floral.app.data.Order
+import com.floral.app.data.Nursery
 import java.util.Calendar
 
 private val BizCream = Color(0xFFF3EAD2)
@@ -130,25 +131,37 @@ fun DispatchCalendar(orders: List<Order>, openOrder: (Order) -> Unit) {
 }
 
 @Composable
-fun GlobalSearch(orders: List<Order>, onOpenOrder: (Order) -> Unit) {
+fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, onOpenOrder: (Order) -> Unit) {
     var query by remember { mutableStateOf("") }
     val matches = if (query.isBlank()) emptyList() else orders.filter { o ->
         listOfNotNull(o.customerName, o.phone, o.address, o.plantName, o.notes)
             .any { it.contains(query, true) }
     }
+    val nurseryMatches = if (query.isBlank()) emptyList() else nurseries.filter { n ->
+        listOfNotNull(n.name, n.address, n.phone).any { it.contains(query, true) }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Search Floral", color = BizCream, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
         OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
             placeholder = { Text("Customer, phone, plant or order") })
-        if (query.isNotBlank() && matches.isEmpty()) Text("No matching orders.", color = BizMuted)
+        if (query.isNotBlank() && matches.isEmpty() && nurseryMatches.isEmpty()) Text("No matching records.", color = BizMuted)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
-            items(matches, key = { it.id }) { order ->
+            items(matches, key = { "order-${it.id}" }) { order ->
                 Card(Modifier.fillMaxWidth().clickable { onOpenOrder(order) },
                     colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(12.dp)) {
                         Text(order.plantName ?: "Plant order", color = BizCream, fontWeight = FontWeight.SemiBold)
                         Text(order.customerName ?: "Customer not entered", color = BizLeaf, fontSize = 12.sp)
                         Text(order.phone ?: "No phone number", color = BizMuted, fontSize = 11.sp)
+                    }
+                }
+            }
+            items(nurseryMatches, key = { "nursery-${it.id}" }) { nursery ->
+                Card(colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(nursery.name ?: "Unnamed nursery", color = BizCream, fontWeight = FontWeight.SemiBold)
+                        Text(nursery.address ?: "Nursery record", color = BizMuted, fontSize = 11.sp)
+                        Text("Nursery", color = BizLeaf, fontSize = 10.sp)
                     }
                 }
             }
