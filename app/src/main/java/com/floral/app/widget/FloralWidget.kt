@@ -45,7 +45,6 @@ class FloralWidget : GlanceAppWidget() {
             Column(modifier = GlanceModifier.fillMaxSize()) {
                 Text("FLORAL", style = TextStyle(color = ColorProvider(Color(0xFFA8C9A7)), fontSize = 11.sp))
                 Text("＋ Add new order", style = TextStyle(color = ColorProvider(Color(0xFFF3EAD2)), fontSize = 16.sp))
-                Text("Quick order entry", style = TextStyle(color = ColorProvider(Color(0xFFD0DED2)), fontSize = 10.sp))
             }
         }
     }
