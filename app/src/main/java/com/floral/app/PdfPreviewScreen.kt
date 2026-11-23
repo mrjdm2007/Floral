@@ -57,7 +57,11 @@ fun PdfPreviewScreen(file: File, onBack: () -> Unit, onPrint: (File) -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text("PDF preview", color = PreviewCream, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 Text(
-                    if (pageCount == null) "Preparing pages…" else if (pageCount < 0) "Could not open PDF" else "$pageCount A4 ${if (pageCount == 1) "page" else "pages"}",
+                    when (val count = pageCount) {
+                        null -> "Preparing pages…"
+                        -1 -> "Could not open PDF"
+                        else -> "$count A4 ${if (count == 1) "page" else "pages"}"
+                    },
                     color = PreviewLeaf,
                     fontSize = 12.sp
                 )
@@ -69,7 +73,7 @@ fun PdfPreviewScreen(file: File, onBack: () -> Unit, onPrint: (File) -> Unit) {
             pageCount == null -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = PreviewLeaf)
             }
-            pageCount <= 0 -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            pageCount?.let { it <= 0 } == true -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text("The PDF could not be opened. Go back and try again.", color = PreviewMuted)
             }
             else -> LazyColumn(
