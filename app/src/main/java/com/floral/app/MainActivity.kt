@@ -77,6 +77,17 @@ class MainActivity:ComponentActivity(){
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
     Surface(Modifier.fillMaxSize(),color=Deep){
      when {
+      printPdf != null -> PdfPreviewScreen(
+       file=printPdf!!,
+       onBack={printPdf=null},
+       onPrint={file->
+        runCatching {
+         val uri=FileProvider.getUriForFile(this@MainActivity,"${packageName}.fileprovider",file)
+         val share=Intent(Intent.ACTION_SEND).apply { type="application/pdf";putExtra(Intent.EXTRA_STREAM,uri);addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+         startActivity(Intent.createChooser(share,"Print or share address PDF"))
+        }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not share PDF",android.widget.Toast.LENGTH_LONG).show() }
+       }
+      )
       editor -> OrderEditor(editing,{editor=false;editing=null}){o->
        lifecycleScope.launch { val id=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id};if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt);editor=false;editing=null }
       }
