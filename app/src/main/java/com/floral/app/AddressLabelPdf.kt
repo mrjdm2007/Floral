@@ -43,9 +43,44 @@ object AddressLabelPdf {
         var page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
         var canvas = page.canvas
         var y = margin
-        var col = 0
         fun finishPage() {
             pdf.finishPage(page)
+            pageNumber++
+            page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+            canvas = page.canvas
+            y = margin
+        }
+        labels.chunked(2).forEach { row ->
+            val rowHeight = row.maxOf { it.height }
+            if (y + rowHeight > pageHeight - margin) finishPage()
+            row.forEachIndexed { index, label ->
+                val left = margin + index * (colWidth + gap)
+                val top = y
+                val bottom = top + rowHeight
+                val cut = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.LTGRAY
+                    style = Paint.Style.STROKE
+                    strokeWidth = 0.8f
+                    pathEffect = android.graphics.DashPathEffect(floatArrayOf(4f, 3f), 0f)
+                }
+                canvas.drawRect(left, top, left + colWidth, bottom, cut)
+                var textY = top + 16f
+                if (label.fromLines.isNotEmpty()) {
+                    canvas.drawText("FROM", left + 10f, textY, heading)
+                    textY += 13f
+                    label.fromLines.forEach { canvas.drawText(it, left + 10f, textY, body); textY += 11f }
+                    textY += 5f
+                    canvas.drawLine(left + 10f, textY, left + colWidth - 10f, textY, small)
+                    textY += 13f
+                }
+                canvas.drawText("SHIP TO", left + 10f, textY, heading)
+                textY += 14f
+                label.toLines.forEach { canvas.drawText(it, left + 10f, textY, body); textY += 12f }
+                canvas.drawText("Cut along the dashed border", left + 10f, bottom - 7f, small)
+            }
+            y += rowHeight + gap
+        }
+        pdf.finishPage(page)
             pageNumber++
             page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
             canvas = page.canvas
