@@ -97,8 +97,8 @@ fun MultiPlantOrderEditor(
         }
         Text("Save one customer order with one or more plants.", color = Leaf, fontSize = 12.sp)
         OrderField("Customer name", customer) { customer = it }
-        Field("Phone number", phone, true, KeyboardType.Phone) { phone = it }
-        Field("Delivery address", address, false) { address = it }
+        OrderField("Phone number", phone, true, KeyboardType.Phone) { phone = it }
+        OrderField("Delivery address", address, false) { address = it }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Plants in this order", color = Cream, fontWeight = FontWeight.SemiBold)
             FilledTonalButton(onClick = { plants.add(PlantEntryDraft()) }) { Icon(Icons.Default.Add, null); Text("Add plant") }
@@ -112,10 +112,10 @@ fun MultiPlantOrderEditor(
                             Icon(Icons.Default.DeleteOutline, null, tint = Muted)
                         }
                     }
-                    Field("Plant name", plant.name) { plants[index] = plants[index].copy(name = it) }
-                    Field("Plant cost (₹)", plant.cost, true, KeyboardType.Decimal) { plants[index] = plants[index].copy(cost = it) }
-                    Field("Selling price (₹)", plant.selling, true, KeyboardType.Decimal) { plants[index] = plants[index].copy(selling = it) }
-                    Field("Final agreed price (₹)", plant.finalPrice, true, KeyboardType.Decimal) { plants[index] = plants[index].copy(finalPrice = it) }
+                    OrderField("Plant name", plant.name) { plants[index] = plants[index].copy(name = it) }
+                    OrderField("Plant cost (₹)", plant.cost, true, KeyboardType.Decimal) { plants[index] = plants[index].copy(cost = it) }
+                    OrderField("Selling price (₹)", plant.selling, true, KeyboardType.Decimal) { plants[index] = plants[index].copy(selling = it) }
+                    OrderField("Final agreed price (₹)", plant.finalPrice, true, KeyboardType.Decimal) { plants[index] = plants[index].copy(finalPrice = it) }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(plant.paid, { plants[index] = plants[index].copy(paid = it) },
                             colors = CheckboxDefaults.colors(checkedColor = Leaf))
@@ -130,15 +130,15 @@ fun MultiPlantOrderEditor(
             Icon(Icons.Default.Image, null); Text(if (photo.isBlank()) "Choose order photo" else "Change order photo")
         }
         if (photo.isNotBlank()) TextButton(onClick = { photo = "" }) { Text("Remove photo") }
-        Field("Courier charges (₹)", courier, true, KeyboardType.Decimal) { courier = it }
+        OrderField("Courier charges (₹)", courier, true, KeyboardType.Decimal) { courier = it }
         Text("Dispatch details", color = Cream, fontWeight = FontWeight.SemiBold)
-        OrderDateField("Expected dispatch date", expected) { expected = it }
-        DateField("Actual dispatch date", dispatched) { dispatched = it }
+        OrderDateOrderField("Expected dispatch date", expected) { expected = it }
+        DateOrderField("Actual dispatch date", dispatched) { dispatched = it }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(includeFrom, { includeFrom = it })
             Text("Include saved FROM address on parcel label", color = Cream, fontSize = 13.sp)
         }
-        Field("Notes / remarks for this order", notes, false) { notes = it }
+        OrderField("Notes / remarks for this order", notes, false) { notes = it }
         Card(colors = CardDefaults.cardColors(containerColor = Forest), shape = RoundedCornerShape(17.dp)) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text("Still to be entered · ${missing.size}", color = Cream, fontWeight = FontWeight.SemiBold)
@@ -166,7 +166,7 @@ fun MultiPlantOrderEditor(
 @Composable
 private fun OrderField(label: String, value: String, single: Boolean = true,
     type: KeyboardType = KeyboardType.Text, onChange: (String) -> Unit) {
-    OutlinedTextField(value, onChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
+    OutlinedTextOrderField(value, onChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
         singleLine = single, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = type),
         colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Cream, unfocusedTextColor = Cream,
             focusedBorderColor = Leaf, unfocusedBorderColor = Muted.copy(alpha = .5f),
@@ -174,7 +174,7 @@ private fun OrderField(label: String, value: String, single: Boolean = true,
 }
 
 @Composable
-private fun OrderDateField(label: String, value: Long?, change: (Long?) -> Unit) {
+private fun OrderDateOrderField(label: String, value: Long?, change: (Long?) -> Unit) {
     val context = LocalContext.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         OutlinedButton(onClick = {
