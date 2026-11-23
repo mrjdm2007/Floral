@@ -80,8 +80,8 @@ fun MultiPlantOrderEditor(
         if (phone.isBlank()) add("Phone number")
         if (address.isBlank()) add("Delivery address")
         if (plants.none { it.name.isNotBlank() }) add("At least one plant name")
-        if (first.cost.toDoubleOrNull() == null) add("First plant cost")
-        if (first.selling.toDoubleOrNull() == null) add("First plant selling price")
+        if (plants.any { it.name.isNotBlank() && it.cost.toDoubleOrNull() == null }) add("Plant costs")
+        if (plants.any { it.name.isNotBlank() && it.selling.toDoubleOrNull() == null }) add("Plant selling prices")
         if (courier.toDoubleOrNull() == null) add("Courier charges")
         if (expected == null) add("Expected dispatch date")
     }
@@ -148,12 +148,16 @@ fun MultiPlantOrderEditor(
         }
         Button(onClick = {
             val primary = plants.firstOrNull() ?: PlantEntryDraft()
+            val namedPlants = plants.filter { it.name.isNotBlank() }
+            val totalCost = if (namedPlants.isNotEmpty() && namedPlants.all { it.cost.toDoubleOrNull() != null }) namedPlants.sumOf { it.cost.toDouble() } else null
+            val totalSelling = if (namedPlants.isNotEmpty() && namedPlants.all { it.selling.toDoubleOrNull() != null }) namedPlants.sumOf { it.selling.toDouble() } else null
+            val totalFinal = if (namedPlants.isNotEmpty() && namedPlants.all { it.finalPrice.toDoubleOrNull() != null }) namedPlants.sumOf { it.finalPrice.toDouble() } else null
             save(Order(
                 id = order?.id ?: 0, customerName = customer.trim().ifBlank { null },
                 phone = phone.trim().ifBlank { null }, address = address.trim().ifBlank { null },
                 plantName = primary.name.trim().ifBlank { null }, photoUri = photo.ifBlank { null },
-                plantCost = primary.cost.toDoubleOrNull(), sellingPrice = primary.selling.toDoubleOrNull(),
-                finalPrice = primary.finalPrice.toDoubleOrNull(), courierCharge = courier.toDoubleOrNull(),
+                plantCost = totalCost, sellingPrice = totalSelling,
+                finalPrice = totalFinal, courierCharge = courier.toDoubleOrNull(),
                 expectedDispatchAt = expected, dispatchedAt = dispatched, isReceived = order?.isReceived ?: false,
                 notes = notes, includeFromAddress = includeFrom, createdAt = order?.createdAt ?: System.currentTimeMillis()
             ), plants.toList())
