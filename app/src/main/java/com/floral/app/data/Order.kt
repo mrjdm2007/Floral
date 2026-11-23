@@ -35,9 +35,8 @@ data class Order(
   if (dispatchedAt == null) add("Actual dispatch date")
   if (courierCharge == null) add("Courier charges")
  }
- // Amount collected from customer for plant + separately collected courier fee.
  val totalValue: Double? get() = if (sellingPrice != null && courierCharge != null) sellingPrice + courierCharge else null
- // Courier is treated as a pass-through amount collected and paid to the carrier.
  val profit: Double? get() = if (plantCost != null && sellingPrice != null) sellingPrice - plantCost else null
- val financialsComplete: Boolean get() = plantCost != null && sellingPrice != null && courierCharge != null
+ // Courier is a pass-through fee; it is not required to calculate plant margin.
+ val financialsComplete: Boolean get() = plantCost != null && sellingPrice != null
 }
