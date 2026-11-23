@@ -25,6 +25,12 @@ fun PrintAddresses(orders: List<Order>, fromAddress: String, onBack: () -> Unit,
                 Text(if (selected.size == orders.size && orders.isNotEmpty()) "Clear all" else "Select all")
             }
         }
+        if (chosen.any { it.includeFromAddress } && fromAddress.isBlank()) {
+            Text("Some selected orders request a FROM address, but none is saved in Settings. Those labels will print without FROM details.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+        if (chosen.any { it.address.isNullOrBlank() }) {
+            Text("Some selected orders have no delivery address. Check those orders before printing.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
         if (orders.isEmpty()) Text("No orders available.")
         else LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(orders, key = { it.id }) { order ->
