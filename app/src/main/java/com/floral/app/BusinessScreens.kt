@@ -28,7 +28,7 @@ private val BizPanel = Color(0xFF142D20)
 private val BizForest = Color(0xFF173C2B)
 
 @Composable
-fun CustomerHistory(orders: List<Order>, openOrder: (Order) -> Unit) {
+fun CustomerHistory(orders: List<Order>, plants: List<OrderPlant>, openOrder: (Order) -> Unit) {
     var query by remember { mutableStateOf("") }
     val customers = orders.filter { !it.customerName.isNullOrBlank() }
         .groupBy { it.customerName!!.trim().lowercase() }
@@ -63,7 +63,7 @@ fun CustomerHistory(orders: List<Order>, openOrder: (Order) -> Unit) {
                                 customerOrders.sortedByDescending { it.createdAt }.forEach { order ->
                                     TextButton(onClick = { openOrder(order) }, contentPadding = PaddingValues(vertical = 2.dp)) {
                                         Column(Modifier.fillMaxWidth()) {
-                                            Text(order.plantName?.takeIf { it.isNotBlank() } ?: "Plant order", color = BizCream)
+                                            Text(plants.filter { it.orderId == order.id }.joinToString(", ") { it.name }.ifBlank { order.plantName?.takeIf { it.isNotBlank() } ?: "Plant order" }, color = BizCream)
                                             Text("Order · ${businessDate(order.createdAt)} · ${if (order.isReceived) "Received" else "Pending"}", color = BizMuted, fontSize = 10.sp)
                                         }
                                     }
@@ -78,7 +78,7 @@ fun CustomerHistory(orders: List<Order>, openOrder: (Order) -> Unit) {
 }
 
 @Composable
-fun DispatchCalendar(orders: List<Order>, openOrder: (Order) -> Unit) {
+fun DispatchCalendar(orders: List<Order>, plants: List<OrderPlant>, openOrder: (Order) -> Unit) {
     var monthOffset by remember { mutableIntStateOf(0) }
     val month = Calendar.getInstance().apply {
         set(Calendar.DAY_OF_MONTH, 1)
@@ -120,7 +120,7 @@ fun DispatchCalendar(orders: List<Order>, openOrder: (Order) -> Unit) {
                         }
                         Column(Modifier.weight(1f)) {
                             Text(order.customerName ?: "Customer not entered", color = BizCream, fontWeight = FontWeight.SemiBold)
-                            Text(order.plantName ?: "Plant order", color = BizMuted, fontSize = 12.sp)
+                            Text(plants.filter { it.orderId == order.id }.joinToString(", ") { it.name }.ifBlank { order.plantName ?: "Plant order" }, color = BizMuted, fontSize = 12.sp)
                             Text(if (order.dispatchedAt != null) "Dispatched" else "Expected dispatch",
                                 color = BizLeaf, fontSize = 10.sp)
                         }
