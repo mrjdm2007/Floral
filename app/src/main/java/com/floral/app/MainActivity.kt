@@ -72,7 +72,7 @@ class MainActivity:ComponentActivity(){
    var nurseryToEdit by remember { mutableStateOf<Nursery?>(null) }
    var plantToEdit by remember { mutableStateOf<NurseryPlant?>(null) }
    var plantEditor by remember { mutableStateOf(false) }
-   var fromAddress by remember { mutableStateOf(getSharedPreferences("floral_settings", MODE_PRIVATE).getString("from_address", "") ?: "") }
+   var fromAddress by remember { mutableStateOf(getSharedPreferences("floral_settings", MODE_PRIVATE).getString("from_address", "") ?: "") }\n   var printPdf by remember { mutableStateOf<File?>(null) }
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
     Surface(Modifier.fillMaxSize(),color=Deep){
      when {
@@ -106,10 +106,7 @@ class MainActivity:ComponentActivity(){
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
         "Print"->PrintAddresses(orders,fromAddress,{page="Orders"}){selectedOrders->
          runCatching {
-          val file=AddressLabelPdf.create(this@MainActivity,selectedOrders,fromAddress)
-          val uri=FileProvider.getUriForFile(this@MainActivity,"${packageName}.fileprovider",file)
-          val share=Intent(Intent.ACTION_SEND).apply { type="application/pdf";putExtra(Intent.EXTRA_STREAM,uri);addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-          startActivity(Intent.createChooser(share,"Share address labels PDF"))
+          printPdf=AddressLabelPdf.create(this@MainActivity,selectedOrders,fromAddress)
          }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not create PDF",android.widget.Toast.LENGTH_LONG).show() }
         }
         "Settings"->SenderAddressSettings(fromAddress){value->
