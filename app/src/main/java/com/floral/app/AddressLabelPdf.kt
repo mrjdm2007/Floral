@@ -24,7 +24,7 @@ object AddressLabelPdf {
         }
         val small = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.DKGRAY; textSize = 8f }
         fun wrap(text: String, paint: Paint, width: Float): List<String> {
-            if (text.isBlank()) return emptyList()
+            if (text.isBlank()) return listOf("")
             val result = mutableListOf<String>()
             var line = ""
             text.split(Regex("\\s+")).forEach { originalWord ->
