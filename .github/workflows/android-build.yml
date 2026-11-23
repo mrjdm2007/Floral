@@ -21,9 +21,19 @@ jobs:
           gradle-version: '8.9'
       - name: Assemble debug APK
         run: gradle :app:assembleDebug --stacktrace
+      - name: Assemble optimized small release APK
+        run: gradle :app:assembleRelease --stacktrace
+      - name: Rename optimized APK
+        run: cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/floral-small.apk
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: floral-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Upload small release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: floral-small-release-apk
+          path: app/build/outputs/apk/release/floral-small.apk
           if-no-files-found: error
