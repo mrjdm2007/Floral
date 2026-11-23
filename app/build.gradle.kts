@@ -7,10 +7,28 @@ plugins {
 android {
  namespace = "com.floral.app"
  compileSdk = 35
- defaultConfig { applicationId = "com.floral.app"; minSdk = 26; targetSdk = 35; versionCode = 3; versionName = "1.2" }
+ defaultConfig {
+  applicationId = "com.floral.app"
+  minSdk = 26
+  targetSdk = 35
+  versionCode = 4
+  versionName = "1.3"
+  ndk { abiFilters += "arm64-v8a" }
+ }
  buildFeatures { compose = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  kotlinOptions { jvmTarget = "17" }
+ buildTypes {
+  getByName("release") {
+   isMinifyEnabled = true
+   isShrinkResources = true
+   signingConfig = signingConfigs.getByName("debug")
+   proguardFiles(
+    getDefaultProguardFile("proguard-android-optimize.txt"),
+    "proguard-rules.pro"
+   )
+  }
+ }
 }
 dependencies {
  val bom = platform("androidx.compose:compose-bom:2024.12.01")
