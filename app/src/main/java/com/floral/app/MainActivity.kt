@@ -130,7 +130,7 @@ class MainActivity:ComponentActivity(){
        }
       ) { innerPadding ->
        var swipeDistance by remember { mutableFloatStateOf(0f) }
-       Column(Modifier.fillMaxSize().padding(innerPadding).windowInsetsPadding(WindowInsets.safeDrawing).padding(top=10.dp).padding(horizontal=18.dp).pointerInput(page) {
+       Column(Modifier.fillMaxSize().padding(innerPadding).padding(top=10.dp).padding(horizontal=18.dp).pointerInput(page) {
         detectHorizontalDragGestures(
          onHorizontalDrag={ _, amount -> swipeDistance += amount },
          onDragEnd={
