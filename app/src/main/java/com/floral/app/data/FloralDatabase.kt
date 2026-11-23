@@ -8,18 +8,38 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Order::class, Nursery::class, NurseryPlant::class],
-    version = 3,
+    entities = [Order::class, Nursery::class, NurseryPlant::class, OrderPlant::class],
+    version = 4,
     exportSchema = true
 )
 abstract class FloralDatabase : RoomDatabase() {
     abstract fun orders(): OrderDao
     abstract fun nurseries(): NurseryDao
+    abstract fun orderPlants(): OrderPlantDao
 
     companion object {
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE orders ADD COLUMN includeFromAddress INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS order_plants (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    orderId INTEGER NOT NULL,
+                    name TEXT NOT NULL DEFAULT '',
+                    photoUri TEXT,
+                    plantCost REAL,
+                    sellingPrice REAL,
+                    finalPrice REAL,
+                    isPaid INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY(orderId) REFERENCES orders(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                )""".trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_order_plants_orderId ON order_plants(orderId)")
+                db.execSQL("""INSERT INTO order_plants (orderId, name, photoUri, plantCost, sellingPrice, finalPrice, isPaid)
+                    SELECT id, COALESCE(plantName, ''), photoUri, plantCost, sellingPrice, finalPrice, 0 FROM orders""".trimIndent())
             }
         }
 
@@ -62,7 +82,7 @@ abstract class FloralDatabase : RoomDatabase() {
                 context.applicationContext,
                 FloralDatabase::class.java,
                 "floral.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
         }
     }
 }
