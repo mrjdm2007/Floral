@@ -36,7 +36,7 @@ private val PreviewMuted = Color(0xFFB5C5B8)
 
 @Composable
 fun PdfPreviewScreen(file: File, onBack: () -> Unit, onPrint: (File) -> Unit) {
-    val pageCount by produceState<Int?>(initialValue = null, file) {
+    val pageCountState = produceState<Int?>(initialValue = null, file) {
         value = withContext(Dispatchers.IO) {
             runCatching {
                 ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
@@ -45,6 +45,7 @@ fun PdfPreviewScreen(file: File, onBack: () -> Unit, onPrint: (File) -> Unit) {
             }.getOrElse { -1 }
         }
     }
+    val pageCount = pageCountState.value
 
     Column(Modifier.fillMaxSize().background(PreviewDeep)) {
         Row(
