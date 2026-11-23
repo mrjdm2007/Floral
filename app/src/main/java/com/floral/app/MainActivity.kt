@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -97,7 +98,7 @@ class MainActivity:ComponentActivity(){
         FilledIconButton(onClick={editing=null;editor=true},colors=IconButtonDefaults.filledIconButtonColors(containerColor=Forest,contentColor=Cream)){Icon(Icons.Default.Add,"Add order")}
        }
        Spacer(Modifier.height(16.dp))
-       Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Overview","Orders","Finances","Nurseries","Print","Settings").forEach{FilterChip(selected=page==it,onClick={page=it},label={Text(it,fontSize=12.sp)})}}
+       Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Overview","Orders","Finances","Nurseries","Print","Settings").forEach{FilterChip(selected=page==it,onClick={page=it},label={Text(it,fontSize=12.sp)})}}
        Spacer(Modifier.height(12.dp))
        when(page){
         "Overview"->Overview(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
