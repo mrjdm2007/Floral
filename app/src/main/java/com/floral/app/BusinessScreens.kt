@@ -63,7 +63,7 @@ fun CustomerHistory(orders: List<Order>, openOrder: (Order) -> Unit) {
                                     TextButton(onClick = { openOrder(order) }, contentPadding = PaddingValues(vertical = 2.dp)) {
                                         Column(Modifier.fillMaxWidth()) {
                                             Text(order.plantName?.takeIf { it.isNotBlank() } ?: "Plant order", color = BizCream)
-                                            Text("Order · ${date(order.createdAt)} · ${if (order.isReceived) "Received" else "Pending"}", color = BizMuted, fontSize = 10.sp)
+                                            Text("Order · ${businessDate(order.createdAt)} · ${if (order.isReceived) "Received" else "Pending"}", color = BizMuted, fontSize = 10.sp)
                                         }
                                     }
                                 }
@@ -168,3 +168,5 @@ fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, onOpenOrder: (Or
         }
     }
 }
+
+private fun businessDate(timestamp: Long): String = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
