@@ -146,14 +146,14 @@ class MainActivity:ComponentActivity(){
         Column { Text("Floral",color=Cream,fontSize=31.sp,fontWeight=FontWeight.SemiBold);Text("A LITTLE MORE ORGANIZED, EVERY DAY",color=Leaf,fontSize=9.sp,letterSpacing=1.5.sp) }
        }
        Spacer(Modifier.height(16.dp))
-       Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Overview","Orders","Finances","Nurseries","Print","Settings").forEach{FilterChip(selected=page==it,onClick={page=it},label={Text(it,fontSize=12.sp)})}}
+       Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Overview","Orders","Customers","Calendar","Search","Finances","Nurseries","Print","Settings").forEach{FilterChip(selected=page==it,onClick={page=it},label={Text(it,fontSize=12.sp)})}}
        Spacer(Modifier.height(12.dp))
        Crossfade(targetState=page,label="tab-transition"){ activePage ->
        when(activePage){
         "Overview"->Overview(orders,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
         "Customers"->CustomerHistory(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Calendar"->DispatchCalendar(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
-        "Search"->GlobalSearch(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
+        "Search"->GlobalSearch(orders,nurseries){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Finances"->Finance(orders)
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
         "Print"->Box(Modifier.fillMaxSize()) {
