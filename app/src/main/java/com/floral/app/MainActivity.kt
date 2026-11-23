@@ -186,6 +186,7 @@ class MainActivity:ComponentActivity(){
 
 @Composable private fun NurseryDetail(nursery:Nursery,dao:NurseryDao,onBack:()->Unit,onEdit:()->Unit,onAddPlant:()->Unit,onEditPlant:(NurseryPlant)->Unit,onDeletePlant:(NurseryPlant)->Unit){
  val plants by dao.observePlants(nursery.id).collectAsStateWithLifecycle(emptyList())
+ val context = androidx.compose.ui.platform.LocalContext.current
  Column(Modifier.fillMaxSize().padding(16.dp)){
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){TextButton(onClick=onBack){Icon(Icons.Default.ArrowBack,null);Text("Nurseries")};TextButton(onClick=onEdit){Icon(Icons.Default.Edit,null);Text("Edit profile")}}
   LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=24.dp)){
@@ -194,8 +195,8 @@ class MainActivity:ComponentActivity(){
      if(nursery.photoUri!=null)AsyncImage(Uri.parse(nursery.photoUri),null,Modifier.fillMaxWidth().heightIn(max=210.dp))
      Text(nursery.name?.ifBlank{"Unnamed nursery"}?:"Unnamed nursery",color=Cream,fontSize=23.sp,fontWeight=FontWeight.SemiBold)
      if(nursery.address!=null)Text(nursery.address,color=Leaf,fontSize=12.sp)
-     if(nursery.latitude!=null&&nursery.longitude!=null)TextButton(onClick={val uri=Uri.parse("geo:${nursery.latitude},${nursery.longitude}?q=${nursery.latitude},${nursery.longitude}(${Uri.encode(nursery.name?:"Nursery")})");runCatching{androidx.compose.ui.platform.LocalContext.current.startActivity(Intent(Intent.ACTION_VIEW,uri))}}){Icon(Icons.Default.Map,null);Text("Open saved location in Maps")}
-     if(nursery.phone!=null)TextButton(onClick={val intent=Intent(Intent.ACTION_DIAL,Uri.parse("tel:${nursery.phone}"));runCatching{androidx.compose.ui.platform.LocalContext.current.startActivity(intent)}}){Icon(Icons.Default.Call,null);Text(nursery.phone)}
+     if(nursery.latitude!=null&&nursery.longitude!=null)TextButton(onClick={val uri=Uri.parse("geo:${nursery.latitude},${nursery.longitude}?q=${nursery.latitude},${nursery.longitude}(${Uri.encode(nursery.name?:"Nursery")})");runCatching{context.startActivity(Intent(Intent.ACTION_VIEW,uri))}}){Icon(Icons.Default.Map,null);Text("Open saved location in Maps")}
+     if(nursery.phone!=null)TextButton(onClick={val intent=Intent(Intent.ACTION_DIAL,Uri.parse("tel:${nursery.phone}"));runCatching{context.startActivity(intent)}}){Icon(Icons.Default.Call,null);Text(nursery.phone)}
      if(nursery.notes.isNotBlank()){Divider(color=Leaf.copy(alpha=.35f));Text("Nursery notes",color=Leaf,fontWeight=FontWeight.SemiBold);Text(nursery.notes,color=Cream,fontSize=13.sp)}
     }}
    }
@@ -221,7 +222,7 @@ class MainActivity:ComponentActivity(){
   val client=LocationServices.getFusedLocationProviderClient(context)
   try{client.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY,CancellationTokenSource().token).addOnSuccessListener{loc->
    if(loc==null){locationStatus="Could not get GPS fix. Try again outdoors."}
-   else{lat=loc.latitude;lon=loc.longitude;locationStatus="GPS coordinates saved";if(Build.VERSION.SDK_INT>=26)try{val geocoder=Geocoder(context,Locale.getDefault());geocoder.getFromLocation(loc.latitude,loc.longitude,1){results->if(results.isNotEmpty()){val a=results[0].getAddressLine(0);if(!a.isNullOrBlank())address=a}}}catch(_:Exception){}}
+   else{lat=loc.latitude;lon=loc.longitude;locationStatus="GPS coordinates saved";try{val geocoder=Geocoder(context,Locale.getDefault());if(Build.VERSION.SDK_INT>=33){geocoder.getFromLocation(loc.latitude,loc.longitude,1){results->if(results.isNotEmpty()){val a=results[0].getAddressLine(0);if(!a.isNullOrBlank())address=a}}}else{@Suppress("DEPRECATION") val results=geocoder.getFromLocation(loc.latitude,loc.longitude,1);if(!results.isNullOrEmpty()){val a=results[0].getAddressLine(0);if(!a.isNullOrBlank())address=a}}}catch(_:Exception){}}
   }.addOnFailureListener{locationStatus="Location unavailable. You can enter the address manually."}}catch(_:SecurityException){locationStatus="Location permission not granted."}
  }
  val permission= androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){r->if(r[Manifest.permission.ACCESS_FINE_LOCATION]==true||r[Manifest.permission.ACCESS_COARSE_LOCATION]==true)captureLocation()else locationStatus="Permission declined. Location is optional."}
