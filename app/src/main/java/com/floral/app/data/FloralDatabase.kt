@@ -29,12 +29,12 @@ abstract class FloralDatabase : RoomDatabase() {
                 db.execSQL("""CREATE TABLE IF NOT EXISTS order_plants (
                     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                     orderId INTEGER NOT NULL,
-                    name TEXT NOT NULL DEFAULT '',
+                    name TEXT NOT NULL,
                     photoUri TEXT,
                     plantCost REAL,
                     sellingPrice REAL,
                     finalPrice REAL,
-                    isPaid INTEGER NOT NULL DEFAULT 0,
+                    isPaid INTEGER NOT NULL,
                     FOREIGN KEY(orderId) REFERENCES orders(id) ON UPDATE NO ACTION ON DELETE CASCADE
                 )""".trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_order_plants_orderId ON order_plants(orderId)")
