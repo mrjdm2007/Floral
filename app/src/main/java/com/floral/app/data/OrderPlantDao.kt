@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface OrderPlantDao {
+    @Query("SELECT * FROM order_plants ORDER BY id")
+    fun observeAll(): Flow<List<OrderPlant>>
+
     @Query("SELECT * FROM order_plants WHERE orderId = :orderId ORDER BY id")
     fun observeForOrder(orderId: Long): Flow<List<OrderPlant>>
 
