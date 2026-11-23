@@ -19,6 +19,7 @@ data class Order(
  val dispatchedAt: Long? = null,
  val isReceived: Boolean = false,
  val notes: String = "",
+ val includeFromAddress: Boolean = false,
  val createdAt: Long = System.currentTimeMillis(),
  val updatedAt: Long = System.currentTimeMillis()
 ) {
