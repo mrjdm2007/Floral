@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,13 @@ import coil.compose.AsyncImage
 import com.floral.app.data.Order
 import com.floral.app.data.OrderPlant
 import android.content.Context
+
+private val Forest = Color(0xFF173C2B)
+private val Deep = Color(0xFF0B1B13)
+private val Panel = Color(0xFF142D20)
+private val Leaf = Color(0xFFA8C9A7)
+private val Cream = Color(0xFFF3EAD2)
+private val Muted = Color(0xFFB5C5B8)
 
 data class PlantEntryDraft(
     val name: String = "",
@@ -87,7 +95,7 @@ fun MultiPlantOrderEditor(
             TextButton(onClick = cancel) { Text("Cancel") }
         }
         Text("Save one customer order with one or more plants.", color = Leaf, fontSize = 12.sp)
-        Field("Customer name", customer) { customer = it }
+        OrderField("Customer name", customer) { customer = it }
         Field("Phone number", phone, true, KeyboardType.Phone) { phone = it }
         Field("Delivery address", address, false) { address = it }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -123,7 +131,7 @@ fun MultiPlantOrderEditor(
         if (photo.isNotBlank()) TextButton(onClick = { photo = "" }) { Text("Remove photo") }
         Field("Courier charges (₹)", courier, true, KeyboardType.Decimal) { courier = it }
         Text("Dispatch details", color = Cream, fontWeight = FontWeight.SemiBold)
-        DateField("Expected dispatch date", expected) { expected = it }
+        OrderDateField("Expected dispatch date", expected) { expected = it }
         DateField("Actual dispatch date", dispatched) { dispatched = it }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(includeFrom, { includeFrom = it })
@@ -151,5 +159,35 @@ fun MultiPlantOrderEditor(
         }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Leaf, contentColor = Deep)) {
             Text("Save order", fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+@Composable
+private fun OrderField(label: String, value: String, single: Boolean = true,
+    type: KeyboardType = KeyboardType.Text, onChange: (String) -> Unit) {
+    OutlinedTextField(value, onChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
+        singleLine = single, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = type),
+        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Cream, unfocusedTextColor = Cream,
+            focusedBorderColor = Leaf, unfocusedBorderColor = Muted.copy(alpha = .5f),
+            focusedLabelColor = Leaf, unfocusedLabelColor = Muted, cursorColor = Leaf))
+}
+
+@Composable
+private fun OrderDateField(label: String, value: Long?, change: (Long?) -> Unit) {
+    val context = LocalContext.current
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        OutlinedButton(onClick = {
+            val c = java.util.Calendar.getInstance().apply { if (value != null) timeInMillis = value }
+            android.app.DatePickerDialog(context, { _, year, month, day ->
+                change(java.util.Calendar.getInstance().apply {
+                    set(year, month, day, 12, 0, 0); set(java.util.Calendar.MILLISECOND, 0)
+                }.timeInMillis)
+            }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DAY_OF_MONTH)).show()
+        }, modifier = Modifier.weight(1f)) {
+            Icon(Icons.Default.CalendarMonth, null)
+            Spacer(Modifier.width(7.dp))
+            Text(if (value == null) label else "$label: " + java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(value)))
+        }
+        if (value != null) TextButton(onClick = { change(null) }) { Text("Clear") }
     }
 }
