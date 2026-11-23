@@ -64,7 +64,7 @@ class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){
   super.onCreate(savedInstanceState)
   if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) notif.launch(Manifest.permission.POST_NOTIFICATIONS)
-  val db=FloralDatabase.get(this);val dao=db.orders();val nurseryDao=db.nurseries()
+  val db=FloralDatabase.get(this);val dao=db.orders();val nurseryDao=db.nurseries();val orderPlantDao=db.orderPlants()
   setContent {
    val orders by dao.observeAll().collectAsStateWithLifecycle(emptyList())
    LaunchedEffect(orders) {
@@ -76,6 +76,7 @@ class MainActivity:ComponentActivity(){
    val nurseries by nurseryDao.observeAll().collectAsStateWithLifecycle(emptyList())
    var page by remember { mutableStateOf("Overview") }
    var editing by remember { mutableStateOf<Order?>(null) }
+   var editingPlants by remember { mutableStateOf<List<OrderPlant>>(emptyList()) }
    var editor by remember { mutableStateOf(intent.getBooleanExtra("quick_add",false)) }
    var selectedNursery by remember { mutableStateOf<Nursery?>(null) }
    var nurseryEditor by remember { mutableStateOf(false) }
@@ -116,17 +117,17 @@ class MainActivity:ComponentActivity(){
       else -> Scaffold(
        containerColor=Deep,
        floatingActionButton={
-        FloatingActionButton(onClick={editing=null;editor=true},containerColor=Leaf,contentColor=Deep){
+        FloatingActionButton(onClick={editing=null;editingPlants=emptyList();editor=true,containerColor=Leaf,contentColor=Deep){
          Icon(Icons.Default.Add,contentDescription="Add order")
         }
        }
       ) { innerPadding ->
        var swipeDistance by remember { mutableFloatStateOf(0f) }
-       Column(Modifier.fillMaxSize().padding(innerPadding).padding(18.dp).pointerInput(page) {
+       Column(Modifier.fillMaxSize().padding(innerPadding).windowInsetsPadding(WindowInsets.safeDrawing).padding(top=10.dp).padding(horizontal=18.dp).pointerInput(page) {
         detectHorizontalDragGestures(
          onHorizontalDrag={ _, amount -> swipeDistance += amount },
          onDragEnd={
-          val tabs=listOf("Overview","Orders","Finances","Nurseries","Print","Settings")
+          val tabs=listOf("Overview","Orders","Customers","Calendar","Search","Finances","Nurseries","Print","Settings")
           val index=tabs.indexOf(page)
           if(swipeDistance < -85f && index < tabs.lastIndex) page=tabs[index+1]
           else if(swipeDistance > 85f && index > 0) page=tabs[index-1]
@@ -143,7 +144,10 @@ class MainActivity:ComponentActivity(){
        Spacer(Modifier.height(12.dp))
        Crossfade(targetState=page,label="tab-transition"){ activePage ->
        when(activePage){
-        "Overview"->Overview(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
+        "Overview"->Overview(orders,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
+        "Customers"->CustomerHistory(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
+        "Calendar"->DispatchCalendar(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
+        "Search"->GlobalSearch(orders){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Finances"->Finance(orders)
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
         "Print"->Box(Modifier.fillMaxSize()) {
@@ -169,7 +173,7 @@ class MainActivity:ComponentActivity(){
          fromAddress=value
          android.widget.Toast.makeText(this@MainActivity,"Sender address saved",android.widget.Toast.LENGTH_SHORT).show()
         }
-        else->OrderList(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
+        else->OrderList(orders,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
        }
        }
        }
