@@ -132,8 +132,8 @@ fun MultiPlantOrderEditor(
         if (photo.isNotBlank()) TextButton(onClick = { photo = "" }) { Text("Remove photo") }
         OrderField("Courier charges (₹)", courier, true, KeyboardType.Decimal) { courier = it }
         Text("Dispatch details", color = Cream, fontWeight = FontWeight.SemiBold)
-        OrderDateOrderField("Expected dispatch date", expected) { expected = it }
-        DateOrderField("Actual dispatch date", dispatched) { dispatched = it }
+        OrderDateField("Expected dispatch date", expected) { expected = it }
+        OrderDateField("Actual dispatch date", dispatched) { dispatched = it }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(includeFrom, { includeFrom = it })
             Text("Include saved FROM address on parcel label", color = Cream, fontSize = 13.sp)
@@ -178,7 +178,7 @@ private fun OrderField(label: String, value: String, single: Boolean = true,
 }
 
 @Composable
-private fun OrderDateOrderField(label: String, value: Long?, change: (Long?) -> Unit) {
+private fun OrderDateField(label: String, value: Long?, change: (Long?) -> Unit) {
     val context = LocalContext.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         OutlinedButton(onClick = {
