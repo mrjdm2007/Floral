@@ -77,17 +77,6 @@ class MainActivity:ComponentActivity(){
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
     Surface(Modifier.fillMaxSize(),color=Deep){
      when {
-      printPdf != null -> PdfPreviewScreen(
-       file=printPdf!!,
-       onBack={printPdf=null},
-       onPrint={file->
-        runCatching {
-         val uri=FileProvider.getUriForFile(this@MainActivity,"${packageName}.fileprovider",file)
-         val share=Intent(Intent.ACTION_SEND).apply { type="application/pdf";putExtra(Intent.EXTRA_STREAM,uri);addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-         startActivity(Intent.createChooser(share,"Print or share address PDF"))
-        }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not share PDF",android.widget.Toast.LENGTH_LONG).show() }
-       }
-      )
       editor -> OrderEditor(editing,{editor=false;editing=null}){o->
        lifecycleScope.launch { val id=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id};if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt);editor=false;editing=null }
       }
@@ -116,10 +105,23 @@ class MainActivity:ComponentActivity(){
         "Overview"->Overview(orders,{editing=it;editor=true},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
         "Finances"->Finance(orders)
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
-        "Print"->PrintAddresses(orders,fromAddress,{page="Orders"}){selectedOrders->
-         runCatching {
-          printPdf=AddressLabelPdf.create(this@MainActivity,selectedOrders,fromAddress)
-         }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not create PDF",android.widget.Toast.LENGTH_LONG).show() }
+        "Print"->Box(Modifier.fillMaxSize()) {
+         PrintAddresses(orders,fromAddress,{page="Orders"}){selectedOrders->
+          runCatching {
+           printPdf=AddressLabelPdf.create(this@MainActivity,selectedOrders,fromAddress)
+          }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not create PDF",android.widget.Toast.LENGTH_LONG).show() }
+         }
+         if(printPdf!=null) PdfPreviewScreen(
+          file=printPdf!!,
+          onBack={printPdf=null},
+          onPrint={file->
+           runCatching {
+            val uri=FileProvider.getUriForFile(this@MainActivity,"${packageName}.fileprovider",file)
+            val share=Intent(Intent.ACTION_SEND).apply { type="application/pdf";putExtra(Intent.EXTRA_STREAM,uri);addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            startActivity(Intent.createChooser(share,"Print or share address PDF"))
+           }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not share PDF",android.widget.Toast.LENGTH_LONG).show() }
+          }
+         )
         }
         "Settings"->SenderAddressSettings(fromAddress){value->
          getSharedPreferences("floral_settings", MODE_PRIVATE).edit().putString("from_address",value).apply()
