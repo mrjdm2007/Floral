@@ -1,11 +1,13 @@
 package com.floral.app.notifications
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.work.*
-import com.floral.app.R
+import com.floral.app.MainActivity
 import com.floral.app.data.FloralDatabase
 import java.util.concurrent.TimeUnit
 class DispatchReminderWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -16,9 +18,15 @@ class DispatchReminderWorker(context: Context, params: WorkerParameters) : Corou
   if (order.dispatchedAt != null || deadline <= System.currentTimeMillis()) return Result.success()
   val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
   if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel("dispatch_deadlines", "Dispatch reminders", NotificationManager.IMPORTANCE_DEFAULT))
+  val openApp = PendingIntent.getActivity(
+   applicationContext, id.toInt(), Intent(applicationContext, MainActivity::class.java),
+   PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+  )
   val n = NotificationCompat.Builder(applicationContext, "dispatch_deadlines")
-   .setSmallIcon(R.drawable.ic_floral).setContentTitle("Dispatch due tomorrow")
+   .setSmallIcon(android.R.drawable.ic_menu_my_calendar)
+   .setContentTitle("Dispatch due tomorrow")
    .setContentText("Remember to dispatch " + (order.plantName ?: "this order") + ".")
+   .setContentIntent(openApp)
    .setAutoCancel(true).build()
   nm.notify(id.toInt(), n)
   return Result.success()
