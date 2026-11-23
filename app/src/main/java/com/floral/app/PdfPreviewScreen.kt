@@ -39,8 +39,9 @@ fun PdfPreviewScreen(file: File, onBack: () -> Unit, onPrint: (File) -> Unit) {
     val pageCount by produceState<Int?>(initialValue = null, file) {
         value = withContext(Dispatchers.IO) {
             runCatching {
-                val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                PdfRenderer(descriptor).use { it.pageCount }
+                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+                    PdfRenderer(descriptor).use { it.pageCount }
+                }
             }.getOrNull()
         }
     }
@@ -108,13 +109,14 @@ private fun PdfPreviewPage(file: File, pageIndex: Int) {
     val bitmap by produceState<Bitmap?>(initialValue = null, file, pageIndex) {
         value = withContext(Dispatchers.IO) {
             runCatching {
-                val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                PdfRenderer(descriptor).use { renderer ->
-                    renderer.openPage(pageIndex).use { page ->
-                        val targetWidth = 1000
-                        val targetHeight = (targetWidth.toFloat() * page.height / page.width).toInt().coerceAtLeast(1)
-                        Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888).also {
-                            page.render(it, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+                    PdfRenderer(descriptor).use { renderer ->
+                        renderer.openPage(pageIndex).use { page ->
+                            val targetWidth = 1000
+                            val targetHeight = (targetWidth.toFloat() * page.height / page.width).toInt().coerceAtLeast(1)
+                            Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888).also {
+                                page.render(it, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            }
                         }
                     }
                 }
