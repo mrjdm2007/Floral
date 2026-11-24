@@ -34,6 +34,7 @@ data class NurseryPlant(
     val nurseryId: Long,
     val name: String? = null,
     val price: Double? = null,
+    val stock: Int = 0,
     val photoUri: String? = null,
     val notes: String = "",
     val createdAt: Long = System.currentTimeMillis()
