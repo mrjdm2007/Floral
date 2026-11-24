@@ -36,7 +36,15 @@ data class Order(
  // The final agreed plant amount takes precedence over the initial/listed selling price.
  // Courier is added to the customer total but excluded from plant margin as a pass-through.
  val effectiveSalePrice: Double? get() = finalPrice ?: sellingPrice
- val totalValue: Double? get() = if (effectiveSalePrice != null && courierCharge != null) effectiveSalePrice + courierCharge else null
- val profit: Double? get() = if (plantCost != null && effectiveSalePrice != null) effectiveSalePrice - plantCost else null
+ val totalValue: Double? get() {
+  val sale = effectiveSalePrice ?: return null
+  val courier = courierCharge ?: return null
+  return sale + courier
+ }
+ val profit: Double? get() {
+  val sale = effectiveSalePrice ?: return null
+  val cost = plantCost ?: return null
+  return sale - cost
+ }
  val financialsComplete: Boolean get() = plantCost != null && effectiveSalePrice != null
 }
