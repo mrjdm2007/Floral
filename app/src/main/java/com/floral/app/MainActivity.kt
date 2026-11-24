@@ -204,7 +204,7 @@ class MainActivity:ComponentActivity(){
          fromAddress=value
          android.widget.Toast.makeText(this@MainActivity,"Sender address saved",android.widget.Toast.LENGTH_SHORT).show()
         }
-        else->OrderList(orders,allOrderPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}},{p,v->lifecycleScope.launch{orderPlantDao.setPaid(p.id,v)}})
+        else->OrderList(orders,allOrderPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}},{p,v->lifecycleScope.launch{orderPlantDao.setPaid(p.id,v)}},{selected->lifecycleScope.launch{selected.filter{it.dispatchedAt==null}.forEach{dao.setDispatched(it.id,System.currentTimeMillis())}}},{selected->lifecycleScope.launch{selected.filter{!it.isReceived}.forEach{dao.setReceived(it.id,true)}}},{selected->lifecycleScope.launch{selected.filter{!it.isPaid}.forEach{orderPlantDao.setPaid(it.id,true)}}})
        }
        }
        }
@@ -228,18 +228,48 @@ class MainActivity:ComponentActivity(){
   else LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=20.dp)){items(orders.take(6),key={it.id}){o->OrderCard(o,plants.filter{it.orderId==o.id},{open(o)},{toggle(o,!o.isReceived)},togglePaid)}}
  }
 }
-@Composable private fun OrderList(orders:List<Order>,plants:List<OrderPlant>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
- var q by remember{mutableStateOf("")};var filter by remember{mutableStateOf("All")}
+@Composable private fun OrderList(orders:List<Order>,plants:List<OrderPlant>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit,togglePaid:(OrderPlant,Boolean)->Unit,bulkSent:(List<Order>)->Unit,bulkReceived:(List<Order>)->Unit,bulkPaid:(List<OrderPlant>)->Unit){
+ var q by remember{mutableStateOf("")}
+ var filter by remember{mutableStateOf("All")}
+ var selectedIds by remember{mutableStateOf(setOf<Long>())}
  val visible=orders.filter{o->
   val orderPlants=plants.filter{it.orderId==o.id}
   (q.isBlank()||listOfNotNull(o.plantName,o.customerName,o.phone,o.address,o.notes).any{it.contains(q,true)}||orderPlants.any{it.name.contains(q,true)}) &&
-  (filter=="All"||(filter=="Received"&&o.isReceived)||(filter=="Pending"&&!o.isReceived)||(filter=="Paid"&&orderPlants.isNotEmpty()&&orderPlants.all{it.isPaid})||(filter=="Unpaid"&&orderPlants.any{!it.isPaid}))
+  when(filter){"Pending"->o.dispatchedAt==null;"Sent"->o.dispatchedAt!=null;"Payment Pending"->orderPlants.any{!it.isPaid};else->true}
  }
+ val selectedOrders=visible.filter{it.id in selectedIds}
+ val selectedPlants=plants.filter{it.orderId in selectedIds}
  Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
   OutlinedTextField(q,{q=it},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("Search plant, customer or phone")},leadingIcon={Icon(Icons.Default.Search,null)})
-  Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(7.dp)){listOf("All","Pending","Received","Paid","Unpaid").forEach{FilterChip(selected=filter==it,onClick={filter=it},label={Text(it)})}}
-  if(visible.isEmpty()) Empty("No matching orders","Try another search or add a new order.")
-  else LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=20.dp)){items(visible,key={it.id}){o->OrderCard(o,plants.filter{it.orderId==o.id},{open(o)},{toggle(o,!o.isReceived)},togglePaid)}}
+  Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(7.dp)){listOf("Pending","Sent","All","Payment Pending").forEach{FilterChip(selected=filter==it,onClick={filter=it;selectedIds=emptySet()},label={Text(it)})}}
+  if(visible.isNotEmpty()){
+   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+    Checkbox(checked=visible.isNotEmpty()&&visible.all{it.id in selectedIds},onCheckedChange={checked->selectedIds=if(checked)selectedIds+visible.map{it.id} else selectedIds-visible.map{it.id}.toSet()})
+    Text(if(selectedIds.isEmpty())"${visible.size} orders" else "${selectedIds.size} selected",color=Muted,fontSize=12.sp,modifier=Modifier.weight(1f))
+    if(selectedIds.isNotEmpty())TextButton(onClick={selectedIds=emptySet()}){Text("Clear")}
+   }
+  }
+  if(selectedIds.isNotEmpty()){
+   Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(16.dp)){
+    Column(Modifier.fillMaxWidth().padding(10.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+     Text("Bulk actions",color=Cream,fontWeight=FontWeight.SemiBold)
+     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+      Button(onClick={bulkSent(selectedOrders);selectedIds=emptySet()},modifier=Modifier.weight(1f),colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)){Text("Mark sent",fontSize=11.sp)}
+      OutlinedButton(onClick={bulkReceived(selectedOrders);selectedIds=emptySet()},modifier=Modifier.weight(1f)){Text("Received",fontSize=11.sp)}
+     }
+     OutlinedButton(onClick={bulkPaid(selectedPlants);selectedIds=emptySet()},modifier=Modifier.fillMaxWidth()){Text("Mark all plants paid")}
+    }
+   }
+  }
+  if(visible.isEmpty())Empty("No matching orders","Try another filter or add a new order.")
+  else LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=20.dp)){
+   items(visible,key={it.id}){o->
+    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+     Checkbox(checked=o.id in selectedIds,onCheckedChange={checked->selectedIds=if(checked)selectedIds+o.id else selectedIds-o.id})
+     Box(Modifier.weight(1f)){OrderCard(o,plants.filter{it.orderId==o.id},{open(o)},{toggle(o,!o.isReceived)},togglePaid)}
+    }
+   }
+  }
  }
 }
 @Composable private fun OrderCard(o:Order,plants:List<OrderPlant>,open:()->Unit,toggleReceived:()->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
