@@ -172,7 +172,16 @@ class MainActivity:ComponentActivity(){
        when(activePage){
         "Overview"->Overview(orders,allOrderPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}},{p,v->lifecycleScope.launch{orderPlantDao.setPaid(p.id,v)}})
         "Customers"->CustomerManagementScreen(customers,orders,allOrderPlants,
-         onSave={customer->lifecycleScope.launch{if(customer.id==0L)customerDao.insert(customer) else customerDao.update(customer)}},
+         onSave={customer->lifecycleScope.launch{
+          db.withTransaction {
+           if(customer.id==0L) customerDao.insert(customer)
+           else {
+            val previous=customers.firstOrNull{it.id==customer.id}
+            customerDao.update(customer)
+            if(previous!=null) dao.updateCustomerDetails(previous.phone.trim(),previous.name,customer.name,customer.phone.trim(),customer.address.trim())
+           }
+          }
+         }},
          onDelete={customer->lifecycleScope.launch{customerDao.delete(customer.id)}},
          openOrder={o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         )
