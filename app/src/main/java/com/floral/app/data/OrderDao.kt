@@ -7,4 +7,5 @@ import kotlinx.coroutines.flow.Flow
  @Insert suspend fun insert(order: Order): Long
  @Update suspend fun update(order: Order)
  @Query("UPDATE orders SET isReceived = :received, updatedAt = :now WHERE id = :id") suspend fun setReceived(id: Long, received: Boolean, now: Long = System.currentTimeMillis())
+ @Query("UPDATE orders SET dispatchedAt = :timestamp, updatedAt = :now WHERE id = :id") suspend fun setDispatched(id: Long, timestamp: Long, now: Long = System.currentTimeMillis())
 }
