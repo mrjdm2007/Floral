@@ -86,7 +86,7 @@ fun MultiPlantOrderEditor(
         if (address.isBlank()) add("Delivery address")
         if (plants.none { it.name.isNotBlank() }) add("At least one plant name")
         if (plants.any { it.name.isNotBlank() && it.cost.toDoubleOrNull() == null }) add("Plant costs")
-        if (plants.any { it.name.isNotBlank() && it.selling.toDoubleOrNull() == null }) add("Plant selling prices")
+        if (plants.any { it.name.isNotBlank() && it.selling.toDoubleOrNull() == null && it.finalPrice.toDoubleOrNull() == null }) add("Plant selling or final agreed prices")
         if (courier.toDoubleOrNull() == null) add("Courier charges")
         if (expected == null) add("Expected dispatch date")
     }
