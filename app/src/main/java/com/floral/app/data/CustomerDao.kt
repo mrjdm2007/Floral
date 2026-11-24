@@ -20,6 +20,12 @@ interface CustomerDao {
     @Query("DELETE FROM customers WHERE id = :id")
     suspend fun delete(id: Long)
 
-    @Query("SELECT * FROM customers WHERE phone = :phone LIMIT 1")
-    suspend fun findByPhone(phone: String): Customer?
+    @Query("""INSERT INTO customers (name, phone, address, notes, createdAt, updatedAt)
+        SELECT :name, :phone, :address, '', :now, :now
+        WHERE NOT EXISTS (
+            SELECT 1 FROM customers
+            WHERE (:phone != '' AND phone = :phone)
+               OR (:phone = '' AND lower(name) = lower(:name))
+        )""")
+    suspend fun insertFromOrder(name: String, phone: String, address: String, now: Long = System.currentTimeMillis())
 }
