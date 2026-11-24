@@ -4,6 +4,12 @@ plugins {
  id("org.jetbrains.kotlin.plugin.compose")
  id("org.jetbrains.kotlin.kapt")
 }
+
+val releaseKeystorePath = providers.environmentVariable("FLORAL_KEYSTORE_FILE").orNull
+val releaseStorePassword = providers.environmentVariable("FLORAL_STORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("FLORAL_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("FLORAL_KEY_PASSWORD").orNull
+
 android {
  namespace = "com.floral.app"
  compileSdk = 35
@@ -11,9 +17,20 @@ android {
   applicationId = "com.floral.app"
   minSdk = 26
   targetSdk = 35
-  versionCode = 7
-  versionName = "1.6"
+  versionCode = 8
+  versionName = "1.7"
   ndk { abiFilters += "arm64-v8a" }
+ }
+ signingConfigs {
+  create("release") {
+   if (releaseKeystorePath != null && releaseStorePassword != null &&
+       releaseKeyAlias != null && releaseKeyPassword != null) {
+    storeFile = file(releaseKeystorePath)
+    storePassword = releaseStorePassword
+    keyAlias = releaseKeyAlias
+    keyPassword = releaseKeyPassword
+   }
+  }
  }
  buildFeatures { compose = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -22,7 +39,7 @@ android {
   getByName("release") {
    isMinifyEnabled = true
    isShrinkResources = true
-   signingConfig = signingConfigs.getByName("debug")
+   signingConfig = signingConfigs.getByName("release")
    proguardFiles(
     getDefaultProguardFile("proguard-android-optimize.txt"),
     "proguard-rules.pro"
