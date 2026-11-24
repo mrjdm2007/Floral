@@ -111,7 +111,11 @@ class MainActivity:ComponentActivity(){
           val savedId=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id}
           orderPlantDao.deleteForOrder(savedId)
           orderPlantDao.insertAll(plants.map { p -> OrderPlant(orderId=savedId,name=p.name,plantCost=p.cost.toDoubleOrNull(),sellingPrice=p.selling.toDoubleOrNull(),finalPrice=p.finalPrice.toDoubleOrNull(),isPaid=p.paid) })
-          if (!o.customerName.isNullOrBlank()) customerDao.insertFromOrder(o.customerName.trim(),o.phone.orEmpty().trim(),o.address.orEmpty().trim())
+          if (!o.customerName.isNullOrBlank()) {
+           val customerPhone=o.phone.orEmpty().trim()
+           val existingCustomer=if(customerPhone.isNotBlank()) customerDao.findByPhone(customerPhone) else customerDao.findByName(o.customerName.trim())
+           if(existingCustomer==null) customerDao.insertIfAbsent(Customer(name=o.customerName.trim(),phone=customerPhone,address=o.address.orEmpty().trim()))
+          }
           savedId
          }
          runCatching {
