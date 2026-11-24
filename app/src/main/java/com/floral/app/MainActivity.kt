@@ -76,6 +76,7 @@ class MainActivity:ComponentActivity(){
     }
    }
    val nurseries by nurseryDao.observeAll().collectAsStateWithLifecycle(emptyList())
+   val nurseryPlants by nurseryDao.observeAllPlants().collectAsStateWithLifecycle(emptyList())
    var page by remember { mutableStateOf("Overview") }
    var editing by remember { mutableStateOf<Order?>(null) }
    var editingPlants by remember { mutableStateOf<List<OrderPlant>>(emptyList()) }
@@ -158,8 +159,8 @@ class MainActivity:ComponentActivity(){
         "Overview"->Overview(orders,allOrderPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}},{p,v->lifecycleScope.launch{orderPlantDao.setPaid(p.id,v)}})
         "Customers"->CustomerHistory(orders,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Calendar"->DispatchCalendar(orders,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
-        "Search"->GlobalSearch(orders,nurseries,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
-        "Finances"->Finance(orders)
+        "Search"->GlobalSearch(orders,nurseries,allOrderPlants,nurseryPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{n->selectedNursery=n})
+        "Finances"->Finance(orders,allOrderPlants)
         "Nurseries"->NurseryList(nurseries,{selectedNursery=it},{nurseryToEdit=null;nurseryEditor=true})
         "Print"->Box(Modifier.fillMaxSize()) {
          PrintAddresses(orders,fromAddress,{page="Orders"}){selectedOrders->
@@ -210,7 +211,7 @@ class MainActivity:ComponentActivity(){
 }
 @Composable private fun OrderList(orders:List<Order>,plants:List<OrderPlant>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
  var q by remember{mutableStateOf("")};var filter by remember{mutableStateOf("All")}
- val visible=orders.filter{listOfNotNull(it.plantName,it.customerName,it.phone).any{v->v.contains(q,true)}&&(filter=="All"||(filter=="Received"&&it.isReceived)||(filter=="Pending"&&!it.isReceived))}
+ val visible=orders.filter{o->(q.isBlank()||listOfNotNull(o.plantName,o.customerName,o.phone,o.address,o.notes).any{it.contains(q,true)}||plants.any{it.orderId==o.id&&it.name.contains(q,true)})&&(filter=="All"||(filter=="Received"&&o.isReceived)||(filter=="Pending"&&!o.isReceived))}
  Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
   OutlinedTextField(q,{q=it},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("Search plant, customer or phone")},leadingIcon={Icon(Icons.Default.Search,null)})
   Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){listOf("All","Pending","Received").forEach{FilterChip(selected=filter==it,onClick={filter=it},label={Text(it)})}}
@@ -249,16 +250,18 @@ class MainActivity:ComponentActivity(){
   }
  }
 }
-@Composable private fun Finance(orders:List<Order>){
+@Composable private fun Finance(orders:List<Order>,plants:List<OrderPlant>){
  val complete=orders.filter{it.financialsComplete}
  Column(verticalArrangement=Arrangement.spacedBy(11.dp)){
   Text("Financial overview",color=Cream,fontSize=23.sp,fontWeight=FontWeight.SemiBold)
-  Metric("Total order value · plant price + courier",orders.mapNotNull{it.totalValue}.sum())
-  Metric("Recorded profit",complete.sumOf{it.profit?:0.0})
-  Text("Profit = selling price − actual plant cost. Courier is counted in the customer's total and treated as a pass-through charge. Only complete financial records count toward profit.",color=Muted,fontSize=11.sp)
+  Metric("Total customer amount · agreed price + courier",orders.mapNotNull{it.totalValue}.sum())
+  Metric("Recorded plant profit · agreed price − cost",complete.sumOf{it.profit?:0.0})
+  val unpaid=plants.filter{!it.isPaid}.sumOf{it.finalPrice?:it.sellingPrice?:0.0}
+  Metric("Plant payments still marked unpaid",unpaid)
+  Text("The final agreed plant price is used when entered; otherwise the listed selling price is used. Courier is added to the customer total and excluded from plant profit as a pass-through charge. Unpaid total sums plant prices marked unpaid.",color=Muted,fontSize=11.sp)
   Text("Order breakdown",color=Cream,fontWeight=FontWeight.SemiBold)
   if(orders.isEmpty())Empty("No financial records yet","Order totals will appear here.")
-  else LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=18.dp)){items(orders,key={it.id}){o->Card(colors=CardDefaults.cardColors(containerColor=Panel)){Column(Modifier.fillMaxWidth().padding(13.dp)){Text(o.plantName?:"Unnamed plant",color=Cream,fontWeight=FontWeight.SemiBold);Text("Order total: ${o.totalValue?.let(::money)?:"Awaiting courier + selling price"}",color=Leaf,fontSize=12.sp);Text("Profit: ${if(o.financialsComplete)money(o.profit?:0.0) else "Pending details"}",color=Muted,fontSize=12.sp)}}}}
+  else LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=18.dp)){items(orders,key={it.id}){o->Card(colors=CardDefaults.cardColors(containerColor=Panel)){Column(Modifier.fillMaxWidth().padding(13.dp)){Text(plants.filter{it.orderId==o.id}.joinToString(", "){it.name}.ifBlank{o.plantName?:"Unnamed plant"},color=Cream,fontWeight=FontWeight.SemiBold);Text("Order total: ${o.totalValue?.let(::money)?:"Awaiting agreed price + courier"}",color=Leaf,fontSize=12.sp);Text("Profit: ${if(o.financialsComplete)money(o.profit?:0.0) else "Pending details"}",color=Muted,fontSize=12.sp);Text("Paid plants: ${plants.count{it.orderId==o.id&&it.isPaid}} / ${plants.count{it.orderId==o.id}}",color=Muted,fontSize=11.sp)}}}}
  }
 }
 @Composable private fun Metric(label:String,amount:Double){Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(18.dp)){Column(Modifier.fillMaxWidth().padding(16.dp)){Text(label,color=Leaf,fontSize=12.sp);Text(money(amount),color=Cream,fontSize=25.sp,fontWeight=FontWeight.Bold)}}}
