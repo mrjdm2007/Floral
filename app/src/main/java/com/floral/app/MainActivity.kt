@@ -240,7 +240,7 @@ class MainActivity:ComponentActivity(){
  val selectedOrders=visible.filter{it.id in selectedIds}
  val selectedPlants=plants.filter{it.orderId in selectedIds}
  Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
-  OutlinedTextField(q,{q=it},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("Search plant, customer or phone")},leadingIcon={Icon(Icons.Default.Search,null)})
+  OutlinedTextField(q,{q=it;selectedIds=emptySet()},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("Search plant, customer or phone")},leadingIcon={Icon(Icons.Default.Search,null)})
   Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(7.dp)){listOf("Pending","Sent","All","Payment Pending").forEach{FilterChip(selected=filter==it,onClick={filter=it;selectedIds=emptySet()},label={Text(it)})}}
   if(visible.isNotEmpty()){
    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
