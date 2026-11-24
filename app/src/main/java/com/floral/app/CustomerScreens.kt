@@ -69,7 +69,9 @@ fun CustomerManagementScreen(
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("Search name, phone, address or notes") }
+            shape = RoundedCornerShape(16.dp),
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = CustomerLeaf) },
+            placeholder = { Text("Search customers") }
         )
         if (filtered.isEmpty()) {
             Card(
@@ -98,8 +100,8 @@ fun CustomerManagementScreen(
                     Card(
                         colors = CardDefaults.cardColors(containerColor = CustomerGlass),
                         border = androidx.compose.foundation.BorderStroke(1.dp, CustomerBorder),
-                        shape = RoundedCornerShape(19.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        shape = RoundedCornerShape(21.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
                         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
