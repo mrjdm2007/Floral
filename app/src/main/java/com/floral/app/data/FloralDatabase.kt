@@ -87,9 +87,9 @@ abstract class FloralDatabase : RoomDatabase() {
                 db.execSQL("""CREATE TABLE IF NOT EXISTS customers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                     name TEXT NOT NULL,
-                    phone TEXT NOT NULL DEFAULT '',
-                    address TEXT NOT NULL DEFAULT '',
-                    notes TEXT NOT NULL DEFAULT '',
+                    phone TEXT NOT NULL,
+                    address TEXT NOT NULL,
+                    notes TEXT NOT NULL,
                     createdAt INTEGER NOT NULL,
                     updatedAt INTEGER NOT NULL
                 )""".trimIndent())
