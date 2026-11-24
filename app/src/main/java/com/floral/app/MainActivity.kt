@@ -74,10 +74,14 @@ class MainActivity:ComponentActivity(){
    val orders by dao.observeAll().collectAsStateWithLifecycle(emptyList())
    val allOrderPlants by orderPlantDao.observeAll().collectAsStateWithLifecycle(emptyList())
    val customers by customerDao.observeAll().collectAsStateWithLifecycle(emptyList())
-   LaunchedEffect(orders) {
-    orders.forEach { order ->
-     if (order.dispatchedAt != null) DispatchReminder.cancel(this@MainActivity, order.id)
-     else DispatchReminder.schedule(this@MainActivity, order.id, order.expectedDispatchAt)
+   // Reminder scheduling depends only on dispatch fields, not unrelated order edits.
+   val reminderSchedule = remember(orders) {
+    orders.map { Triple(it.id, it.dispatchedAt, it.expectedDispatchAt) }
+   }
+   LaunchedEffect(reminderSchedule) {
+    reminderSchedule.forEach { (orderId, dispatchedAt, expectedDispatchAt) ->
+     if (dispatchedAt != null) DispatchReminder.cancel(this@MainActivity, orderId)
+     else DispatchReminder.schedule(this@MainActivity, orderId, expectedDispatchAt)
     }
    }
    val nurseries by nurseryDao.observeAll().collectAsStateWithLifecycle(emptyList())
