@@ -57,9 +57,9 @@ object AddressLabelPdf {
                 order.customerName?.takeIf { it.isNotBlank() },
                 order.address?.takeIf { it.isNotBlank() },
                 order.phone?.takeIf { it.isNotBlank() }?.let { "Phone: $it" }
-            ).joinToString("\\n")
-            val to = toText.split("\\n").flatMap { wrap(it, body, colWidth - 22f) }
-            Label(from, to, (58f + (from.size + to.size) * 12f).coerceAtLeast(112f))
+            ).joinToString("\n")
+            val to = toText.split(Regex("\\r?\\n")).flatMap { wrap(it, body, colWidth - 22f) }
+            Label(from, to, (67f + from.size * 11f + to.size * 12f).coerceAtLeast(112f))
         }
 
         var pageNumber = 1
