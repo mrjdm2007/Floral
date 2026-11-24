@@ -3,6 +3,8 @@ package com.floral.app
 import android.Manifest
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.net.Uri
@@ -397,7 +399,24 @@ class MainActivity:ComponentActivity(){
      if(nursery.photoUri!=null)AsyncImage(Uri.parse(nursery.photoUri),null,Modifier.fillMaxWidth().heightIn(max=210.dp))
      Text(nursery.name?.ifBlank{"Unnamed nursery"}?:"Unnamed nursery",color=Cream,fontSize=23.sp,fontWeight=FontWeight.SemiBold)
      if(nursery.address!=null)Text(nursery.address,color=Leaf,fontSize=12.sp)
-     if(nursery.latitude!=null&&nursery.longitude!=null)TextButton(onClick={val uri=Uri.parse("geo:${nursery.latitude},${nursery.longitude}?q=${nursery.latitude},${nursery.longitude}(${Uri.encode(nursery.name?:"Nursery")})");runCatching{context.startActivity(Intent(Intent.ACTION_VIEW,uri))}}){Icon(Icons.Default.Map,null);Text("Open saved location in Maps")}
+     if(nursery.latitude!=null&&nursery.longitude!=null) {
+      val coordinates=String.format(Locale.US,"%.7f, %.7f",nursery.latitude,nursery.longitude)
+      Divider(color=Leaf.copy(alpha=.28f))
+      Text("PINPOINT COORDINATES",color=Leaf,fontSize=10.sp,fontWeight=FontWeight.SemiBold,letterSpacing=1.sp)
+      Text(coordinates,color=Cream,fontSize=15.sp,fontWeight=FontWeight.Medium)
+      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+       OutlinedButton(onClick={
+        val clipboard=context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("Nursery coordinates",coordinates))
+        android.widget.Toast.makeText(context,"Coordinates copied",android.widget.Toast.LENGTH_SHORT).show()
+       },modifier=Modifier.weight(1f)) { Icon(Icons.Default.ContentCopy,null); Spacer(Modifier.width(6.dp)); Text("Copy coordinates") }
+       Button(onClick={
+        val mapsUrl=Uri.parse("https://www.google.com/maps/search/?api=1&query=${nursery.latitude},${nursery.longitude}")
+        runCatching{context.startActivity(Intent(Intent.ACTION_VIEW,mapsUrl))}
+         .onFailure{android.widget.Toast.makeText(context,"Could not open Maps",android.widget.Toast.LENGTH_SHORT).show()}
+       },modifier=Modifier.weight(1f),colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)) { Icon(Icons.Default.Map,null); Spacer(Modifier.width(6.dp)); Text("Open pin") }
+      }
+     }
      if(nursery.phone!=null)TextButton(onClick={val intent=Intent(Intent.ACTION_DIAL,Uri.parse("tel:${nursery.phone}"));runCatching{context.startActivity(intent)}}){Icon(Icons.Default.Call,null);Text(nursery.phone)}
      if(nursery.notes.isNotBlank()){Divider(color=Leaf.copy(alpha=.35f));Text("Nursery notes",color=Leaf,fontWeight=FontWeight.SemiBold);Text(nursery.notes,color=Cream,fontSize=13.sp)}
     }}
