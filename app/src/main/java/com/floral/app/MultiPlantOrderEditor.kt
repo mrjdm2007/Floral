@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -97,11 +98,14 @@ fun MultiPlantOrderEditor(
             .padding(top = 14.dp).padding(horizontal = 18.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(if (order == null) "New order" else "Edit order", color = Cream, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
-            TextButton(onClick = cancel) { Text("Cancel") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("ORDER DETAILS", color = Leaf, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp)
+                Text(if (order == null) "New order" else "Edit order", color = Cream, fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
+            }
+            TextButton(onClick = cancel) { Text("Cancel", color = Muted) }
         }
-        Text("Save one customer order with one or more plants.", color = Leaf, fontSize = 12.sp)
+        Text("Customer information", color = Cream, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         OrderField("Customer name", customer) { customer = it }
         OrderField("Phone number", phone, true, KeyboardType.Phone) { phone = it }
         OrderField("Delivery address", address, false) { address = it }
@@ -110,7 +114,9 @@ fun MultiPlantOrderEditor(
             FilledTonalButton(onClick = { plants.add(PlantEntryDraft()) }) { Icon(Icons.Default.Add, null); Text("Add plant") }
         }
         plants.forEachIndexed { index, plant ->
-            Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(15.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = .09f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Plant ${index + 1}", color = Leaf, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
@@ -130,14 +136,16 @@ fun MultiPlantOrderEditor(
                 }
             }
         }
-        Text("Order photograph (optional)", color = Cream, fontWeight = FontWeight.SemiBold)
+        Text("Order photograph", color = Cream, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text("Optional · Add a reference photo for this order.", color = Muted, fontSize = 11.sp)
         if (photo.isNotBlank()) AsyncImage(Uri.parse(photo), null, Modifier.fillMaxWidth().heightIn(max = 170.dp))
         OutlinedButton(onClick = { picker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Image, null); Text(if (photo.isBlank()) "Choose order photo" else "Change order photo")
         }
         if (photo.isNotBlank()) TextButton(onClick = { photo = "" }) { Text("Remove photo") }
         OrderField("Courier charges (₹)", courier, true, KeyboardType.Decimal) { courier = it }
-        Text("Dispatch details", color = Cream, fontWeight = FontWeight.SemiBold)
+        HorizontalDivider(color = Color.White.copy(alpha = .10f))
+        Text("Dispatch details", color = Cream, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         OrderDateField("Expected dispatch date", expected) { expected = it }
         OrderDateField("Actual dispatch date", dispatched) { dispatched = it }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -146,7 +154,8 @@ fun MultiPlantOrderEditor(
         }
         OrderField("Notes / remarks for this order", notes, false) { notes = it }
         if (invalidMoney) Text("Enter valid non-negative amounts. Remove invalid characters or negative values before saving.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-        Card(colors = CardDefaults.cardColors(containerColor = Forest), shape = RoundedCornerShape(17.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = Forest), shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = .10f))) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text("Still to be entered · ${missing.size}", color = Cream, fontWeight = FontWeight.SemiBold)
                 if (missing.isEmpty()) Text("Everything is filled in.", color = Leaf, fontSize = 12.sp)
@@ -199,7 +208,7 @@ private fun OrderDateField(label: String, value: Long?, change: (Long?) -> Unit)
                     set(year, month, day, 12, 0, 0); set(java.util.Calendar.MILLISECOND, 0)
                 }.timeInMillis)
             }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DAY_OF_MONTH)).show()
-        }, modifier = Modifier.weight(1f)) {
+        }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp)) {
             Icon(Icons.Default.CalendarMonth, null)
             Spacer(Modifier.width(7.dp))
             Text(if (value == null) label else "$label: " + java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(value)))
