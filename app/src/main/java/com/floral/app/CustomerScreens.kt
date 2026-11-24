@@ -1,6 +1,8 @@
 package com.floral.app
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -141,6 +144,7 @@ fun CustomerManagementScreen(
     if (creating) {
         CustomerEditorDialog(
             initial = editing,
+            existingCustomers = customers,
             onDismiss = { creating = false; editing = null },
             onSave = { customer -> onSave(customer); creating = false; editing = null }
         )
@@ -160,41 +164,145 @@ fun CustomerManagementScreen(
 }
 
 @Composable
-private fun CustomerEditorDialog(initial: Customer?, onDismiss: () -> Unit, onSave: (Customer) -> Unit) {
+private fun CustomerEditorDialog(
+    initial: Customer?,
+    existingCustomers: List<Customer>,
+    onDismiss: () -> Unit,
+    onSave: (Customer) -> Unit
+) {
     var name by remember(initial?.id) { mutableStateOf(initial?.name.orEmpty()) }
     var phone by remember(initial?.id) { mutableStateOf(initial?.phone.orEmpty()) }
     var address by remember(initial?.id) { mutableStateOf(initial?.address.orEmpty()) }
     var notes by remember(initial?.id) { mutableStateOf(initial?.notes.orEmpty()) }
+    var confirmAnyway by remember(initial?.id) { mutableStateOf(false) }
     val valid = name.isNotBlank() && (phone.isBlank() || phone.count { it.isDigit() } >= 7)
+    val matches = remember(name, phone, existingCustomers, initial?.id) {
+        val normalizedPhone = customerPhoneKey(phone)
+        existingCustomers.filter { candidate ->
+            candidate.id != initial?.id && (
+                (normalizedPhone.isNotBlank() && normalizedPhone == customerPhoneKey(candidate.phone)) ||
+                customerNamesSimilar(name, candidate.name)
+            )
+        }.sortedByDescending { candidate ->
+            if (normalizedPhone.isNotBlank() && normalizedPhone == customerPhoneKey(candidate.phone)) 2 else 1
+        }.take(4)
+    }
+    val hasMatches = matches.isNotEmpty()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initial == null) "Add customer" else "Edit customer") },
+        shape = RoundedCornerShape(26.dp),
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(if (initial == null) "New customer" else "Edit customer", fontWeight = FontWeight.SemiBold)
+                Text("Customer details", color = CustomerMuted, style = MaterialTheme.typography.labelMedium)
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Customer name *") }, singleLine = true)
-                OutlinedTextField(phone, { phone = it }, label = { Text("Phone number") }, singleLine = true)
-                OutlinedTextField(address, { address = it }, label = { Text("Default delivery address") }, minLines = 2, maxLines = 4)
-                OutlinedTextField(notes, { notes = it }, label = { Text("Customer notes") }, minLines = 2, maxLines = 4)
-                if (!valid) Text("Enter a name and, if provided, a valid phone number.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 540.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(name, { name = it; confirmAnyway = false },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Customer name *") },
+                    singleLine = true, shape = RoundedCornerShape(14.dp))
+                OutlinedTextField(phone, { phone = it; confirmAnyway = false },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Phone number") },
+                    singleLine = true, shape = RoundedCornerShape(14.dp))
+                OutlinedTextField(address, { address = it },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Default delivery address") },
+                    minLines = 2, maxLines = 4, shape = RoundedCornerShape(14.dp))
+                OutlinedTextField(notes, { notes = it },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Notes") },
+                    minLines = 2, maxLines = 4, shape = RoundedCornerShape(14.dp))
+                if (!valid) Text("Enter a customer name and a valid phone number (if provided).",
+                    color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
+                if (hasMatches) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF3A3020)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD98A).copy(alpha = 0.38f)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFFD98A))
+                                Text("Possible duplicate found", color = Color(0xFFFFD98A), fontWeight = FontWeight.SemiBold)
+                            }
+                            Text("A customer with a similar name or matching phone number already exists. Check before saving.",
+                                color = CustomerCream, fontSize = 12.sp)
+                            matches.forEach { match ->
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(match.name, color = CustomerCream, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                    Text(listOf(match.phone, match.address).filter { it.isNotBlank() }.joinToString(" · ")
+                                        .ifBlank { "No phone or address saved" }, color = CustomerMuted, fontSize = 11.sp)
+                                }
+                                if (match != matches.last()) HorizontalDivider(color = Color.White.copy(alpha = 0.10f))
+                            }
+                            Text("If this is a different person, such as a family member sharing a number, you can still save it.",
+                                color = CustomerMuted, fontSize = 11.sp)
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
-            TextButton(enabled = valid, onClick = {
-                val now = System.currentTimeMillis()
-                onSave(Customer(
-                    id = initial?.id ?: 0,
-                    name = name.trim(),
-                    phone = phone.trim(),
-                    address = address.trim(),
-                    notes = notes.trim(),
-                    createdAt = initial?.createdAt ?: now,
-                    updatedAt = now
-                ))
-            }) { Text("Save") }
+            Column(horizontalAlignment = Alignment.End) {
+                TextButton(
+                    enabled = valid && (!hasMatches || confirmAnyway),
+                    onClick = {
+                        val now = System.currentTimeMillis()
+                        onSave(Customer(
+                            id = initial?.id ?: 0, name = name.trim(), phone = phone.trim(),
+                            address = address.trim(), notes = notes.trim(),
+                            createdAt = initial?.createdAt ?: now, updatedAt = now
+                        ))
+                    }
+                ) { Text(if (hasMatches) "Save anyway" else "Save customer") }
+                if (hasMatches && !confirmAnyway && valid) {
+                    TextButton(onClick = { confirmAnyway = true }) { Text("This is a different customer") }
+                }
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
+}
+
+private fun customerPhoneKey(value: String): String {
+    val digits = value.filter(Char::isDigit)
+    return if (digits.length > 10) digits.takeLast(10) else digits
+}
+
+private fun customerNameKey(value: String): String =
+    value.lowercase(java.util.Locale.ROOT)
+        .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+        .trim()
+        .replace(Regex("\\s+"), " ")
+
+private fun customerNamesSimilar(first: String, second: String): Boolean {
+    val a = customerNameKey(first)
+    val b = customerNameKey(second)
+    if (a.length < 4 || b.length < 4) return false
+    if (a == b) return true
+    if (a.contains(b) || b.contains(a)) return minOf(a.length, b.length) >= 5
+    val at = a.split(" ").filter { it.length >= 3 }.toSet()
+    val bt = b.split(" ").filter { it.length >= 3 }.toSet()
+    if (at.intersect(bt).isNotEmpty()) return true
+    if (kotlin.math.abs(a.length - b.length) > 2) return false
+    return customerEditDistance(a, b) <= if (maxOf(a.length, b.length) >= 8) 2 else 1
+}
+
+private fun customerEditDistance(a: String, b: String): Int {
+    var previous = IntArray(b.length + 1) { it }
+    for (i in a.indices) {
+        val current = IntArray(b.length + 1)
+        current[0] = i + 1
+        for (j in b.indices) {
+            current[j + 1] = minOf(current[j] + 1, previous[j + 1] + 1,
+                previous[j] + if (a[i] == b[j]) 0 else 1)
+        }
+        previous = current
+    }
+    return previous[b.length]
 }
 
 private fun customerDate(timestamp: Long): String =
