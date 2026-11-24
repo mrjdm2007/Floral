@@ -116,7 +116,7 @@ fun CustomerManagementScreen(
                             HorizontalDivider(color = CustomerBorder)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("${linkedOrders.size} order(s)", color = CustomerLeaf, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                                if (unpaid > 0.0) Text("Unpaid ${money(unpaid)}", color = Color(0xFFFFD98A), fontSize = 11.sp)
+                                if (unpaid > 0.0) Text("Unpaid ${customerMoney(unpaid)}", color = Color(0xFFFFD98A), fontSize = 11.sp)
                                 else Text("No unpaid plant balance", color = CustomerMuted, fontSize = 10.sp)
                             }
                             linkedOrders.take(3).forEach { order ->
@@ -125,7 +125,7 @@ fun CustomerManagementScreen(
                                         Text(plants.filter { it.orderId == order.id }.joinToString(", ") { it.name }
                                             .ifBlank { order.plantName?.takeIf { it.isNotBlank() } ?: "Plant order" },
                                             color = CustomerCream, fontSize = 12.sp)
-                                        Text("${businessDate(order.createdAt)} · ${if (order.isReceived) "Received" else "Not received"}",
+                                        Text("${customerDate(order.createdAt)} · ${if (order.isReceived) "Received" else "Not received"}",
                                             color = CustomerMuted, fontSize = 10.sp)
                                     }
                                 }
@@ -196,3 +196,9 @@ private fun CustomerEditorDialog(initial: Customer?, onDismiss: () -> Unit, onSa
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
+
+private fun customerDate(timestamp: Long): String =
+    java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
+
+private fun customerMoney(value: Double): String =
+    "₹" + String.format(java.util.Locale("en", "IN"), "%,.2f", value)
