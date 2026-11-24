@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           STORE_PASSWORD="$(openssl rand -hex 24)"
-          KEY_PASSWORD="$(openssl rand -hex 24)"
+          KEY_PASSWORD="$STORE_PASSWORD"
           keytool -genkeypair -v \
             -keystore "$RUNNER_TEMP/floral-temporary-release.jks" \
             -storepass "$STORE_PASSWORD" \
@@ -51,6 +51,7 @@ jobs:
         run: cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/floral-small.apk
 
       - name: Upload debug APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: floral-debug-apk
