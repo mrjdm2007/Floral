@@ -32,10 +32,20 @@ class DispatchReminderWorker(context: Context, params: WorkerParameters) : Corou
   val extraCount = (plantNames.size - 3).coerceAtLeast(0)
   val plantLabel = if (extraCount > 0) "$visibleNames +$extraCount more" else visibleNames
   val dueDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(deadline))
+  val customerName = order.customerName?.takeIf { it.isNotBlank() } ?: "Customer not specified"
+  val orderLabel = "Order #$id"
+  val title = if (overdue) "Dispatch overdue • $orderLabel" else "Dispatch reminder • $orderLabel"
+  val message = if (overdue) {
+   "$customerName — $plantLabel. Dispatch was due $dueDate."
+  } else {
+   "$customerName — $plantLabel. Dispatch by $dueDate."
+  }
   val n = NotificationCompat.Builder(applicationContext, "dispatch_deadlines")
    .setSmallIcon(android.R.drawable.ic_menu_my_calendar)
-   .setContentTitle(if (overdue) "Dispatch overdue" else "Dispatch reminder")
-   .setContentText(if (overdue) "The dispatch date for $plantLabel was $dueDate. Update this order when dispatched." else "Remember to dispatch $plantLabel by $dueDate.")
+   .setContentTitle(title)
+   .setContentText(message)
+   .setStyle(NotificationCompat.BigTextStyle().bigText("$message\\n$orderLabel"))
+   .setContentIntent(openApp)
    .setContentIntent(openApp)
    .setAutoCancel(true).build()
   nm.notify(id.toInt(), n)
