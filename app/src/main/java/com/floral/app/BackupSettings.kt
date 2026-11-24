@@ -11,17 +11,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.floral.app.data.FloralDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (String) -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var address by remember(currentAddress) { mutableStateOf(currentAddress) }
+    val scope = rememberCoroutineScope()
     val exportPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
-        if (uri != null) runCatching { DataBackup.export(context, db, uri) }
-            .onSuccess { Toast.makeText(context, "Backup created successfully.", Toast.LENGTH_LONG).show() }
-            .onFailure { Toast.makeText(context, it.message ?: "Backup failed.", Toast.LENGTH_LONG).show() }
+        if (uri != null) scope.launch {
+            runCatching { withContext(Dispatchers.IO) { DataBackup.export(context, db, uri) } }
+                .onSuccess { Toast.makeText(context, "Backup created successfully.", Toast.LENGTH_LONG).show() }
+                .onFailure { Toast.makeText(context, it.message ?: "Backup failed.", Toast.LENGTH_LONG).show() }
+        }
     }
     val importPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -32,12 +38,14 @@ fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (S
                 .setMessage("Restoring replaces the current Floral records and app-managed photos with the contents of this backup. Export a backup of the current data first if you may need it.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Restore") { _, _ ->
-                    runCatching { DataBackup.restore(context, uri) }
-                        .onSuccess {
-                            Toast.makeText(context, "Backup restored. Reloading Floral…", Toast.LENGTH_LONG).show()
-                            (context as? Activity)?.recreate()
-                        }
-                        .onFailure { Toast.makeText(context, it.message ?: "Restore failed.", Toast.LENGTH_LONG).show() }
+                    scope.launch {
+                        runCatching { withContext(Dispatchers.IO) { DataBackup.restore(context, uri) } }
+                            .onSuccess {
+                                Toast.makeText(context, "Backup restored. Reloading Floral…", Toast.LENGTH_LONG).show()
+                                (context as? Activity)?.recreate()
+                            }
+                            .onFailure { Toast.makeText(context, it.message ?: "Restore failed.", Toast.LENGTH_LONG).show() }
+                    }
                 }.create()
             confirmed.show()
         }
