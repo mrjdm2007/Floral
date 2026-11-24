@@ -83,6 +83,13 @@ abstract class FloralDatabase : RoomDatabase() {
 
         @Volatile private var instance: FloralDatabase? = null
 
+        fun closeForRestore() {
+            synchronized(this) {
+                instance?.close()
+                instance = null
+            }
+        }
+
         fun get(context: Context): FloralDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
                 context.applicationContext,
