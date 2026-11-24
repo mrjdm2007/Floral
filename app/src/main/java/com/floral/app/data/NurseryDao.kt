@@ -20,6 +20,9 @@ interface NurseryDao {
     @Query("DELETE FROM nurseries WHERE id = :id")
     suspend fun delete(id: Long)
 
+    @Query("SELECT * FROM nursery_plants ORDER BY createdAt DESC")
+    fun observeAllPlants(): Flow<List<NurseryPlant>>
+
     @Query("SELECT * FROM nursery_plants WHERE nurseryId = :nurseryId ORDER BY createdAt DESC")
     fun observePlants(nurseryId: Long): Flow<List<NurseryPlant>>
 
