@@ -357,7 +357,7 @@ class MainActivity:ComponentActivity(){
    }
    item {Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Column{Text("Plants from this nursery",color=Cream,fontSize=18.sp,fontWeight=FontWeight.SemiBold);Text("${plants.size} saved plants",color=Muted,fontSize=11.sp)};Button(onClick=onAddPlant,colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)){Icon(Icons.Default.Add,null);Text("Add plant")}}}
    if(plants.isEmpty())item{Empty("No plants recorded","Add the plants and prices your mother finds here.")}
-   items(plants,key={it.id}){p->Card(Modifier.fillMaxWidth().clickable{onEditPlant(p)},colors=CardDefaults.cardColors(containerColor=Panel)){Row(Modifier.padding(11.dp),verticalAlignment=Alignment.CenterVertically){if(p.photoUri!=null)AsyncImage(Uri.parse(p.photoUri),null,Modifier.size(70.dp))else Box(Modifier.size(70.dp).background(Forest,RoundedCornerShape(12.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Spa,null,tint=Leaf)};Spacer(Modifier.width(11.dp));Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){Text(p.name?: "Unnamed plant",color=Cream,fontWeight=FontWeight.SemiBold);Text(p.price?.let{money(it)}?:"Price not entered",color=Leaf,fontSize=12.sp);if(p.notes.isNotBlank())Text(p.notes,color=Muted,fontSize=10.sp,maxLines=2)};IconButton(onClick={onDeletePlant(p)}){Icon(Icons.Default.DeleteOutline,null,tint=Muted)}}}}
+   items(plants,key={it.id}){p->Card(Modifier.fillMaxWidth().clickable{onEditPlant(p)},colors=CardDefaults.cardColors(containerColor=Panel)){Row(Modifier.padding(11.dp),verticalAlignment=Alignment.CenterVertically){if(p.photoUri!=null)AsyncImage(Uri.parse(p.photoUri),null,Modifier.size(70.dp))else Box(Modifier.size(70.dp).background(Forest,RoundedCornerShape(12.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Spa,null,tint=Leaf)};Spacer(Modifier.width(11.dp));Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){Text(p.name?: "Unnamed plant",color=Cream,fontWeight=FontWeight.SemiBold);Text((p.price?.let{money(it)}?:"Price not entered")+" · Stock: ${p.stock}",color=Leaf,fontSize=12.sp);if(p.notes.isNotBlank())Text(p.notes,color=Muted,fontSize=10.sp,maxLines=2)};IconButton(onClick={onDeletePlant(p)}){Icon(Icons.Default.DeleteOutline,null,tint=Muted)}}}}
   }
  }
 }
@@ -403,18 +403,20 @@ class MainActivity:ComponentActivity(){
 
 @Composable private fun NurseryPlantEditor(existing:NurseryPlant?,nurseryId:Long,cancel:()->Unit,save:(NurseryPlant)->Unit){
  val context=androidx.compose.ui.platform.LocalContext.current
- var name by remember(existing?.id){mutableStateOf(existing?.name.orEmpty())};var price by remember(existing?.id){mutableStateOf(existing?.price?.toString().orEmpty())};var notes by remember(existing?.id){mutableStateOf(existing?.notes.orEmpty())};var photo by remember(existing?.id){mutableStateOf(existing?.photoUri.orEmpty())}
+ var name by remember(existing?.id){mutableStateOf(existing?.name.orEmpty())};var price by remember(existing?.id){mutableStateOf(existing?.price?.toString().orEmpty())};var stock by remember(existing?.id){mutableStateOf(existing?.stock?.toString() ?: "0")};var notes by remember(existing?.id){mutableStateOf(existing?.notes.orEmpty())};var photo by remember(existing?.id){mutableStateOf(existing?.photoUri.orEmpty())}
  val picker=androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){u->if(u!=null){runCatching{context.contentResolver.takePersistableUriPermission(u,Intent.FLAG_GRANT_READ_URI_PERMISSION)};photo=u.toString()}}
  val invalidPrice = price.isNotBlank() && (price.toDoubleOrNull()?.let { it < 0.0 } ?: true)
+ val invalidStock = stock.toIntOrNull()?.let { it < 0 } ?: true
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(existing==null)"Add nursery plant" else "Edit plant",color=Cream,fontSize=24.sp,fontWeight=FontWeight.SemiBold);TextButton(onClick=cancel){Text("Cancel")}}
   Text("Plant details are optional. This entry will be saved under its nursery.",color=Leaf,fontSize=12.sp)
   if(photo.isNotBlank())AsyncImage(Uri.parse(photo),null,Modifier.fillMaxWidth().heightIn(max=220.dp))
   OutlinedButton(onClick={picker.launch(arrayOf("image/*"))},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.Image,null);Text(if(photo.isBlank())"Choose plant photo" else "Change plant photo")}
   if(photo.isNotBlank())TextButton(onClick={photo=""}){Text("Remove photo")}
-  Field("Plant name",name){name=it};Field("Nursery price (₹)",price,true,KeyboardType.Decimal){price=it};Field("Plant notes",notes,false){notes=it}
+  Field("Plant name",name){name=it};Field("Nursery price (₹)",price,true,KeyboardType.Decimal){price=it};Field("Stock quantity",stock,true,KeyboardType.Number){stock=it};Field("Plant notes",notes,false){notes=it}
   if(invalidPrice)Text("Enter a valid non-negative nursery price.",color=MaterialTheme.colorScheme.error,fontSize=12.sp)
-  Button(onClick={save(NurseryPlant(id=existing?.id?:0,nurseryId=nurseryId,name=name.trim().ifBlank{null},price=price.toDoubleOrNull(),photoUri=photo.ifBlank{null},notes=notes.trim(),createdAt=existing?.createdAt?:System.currentTimeMillis()))},enabled=!invalidPrice,modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)){Text("Save plant",fontWeight=FontWeight.SemiBold)}
+  if(invalidStock)Text("Enter a whole-number stock quantity of 0 or more.",color=MaterialTheme.colorScheme.error,fontSize=12.sp)
+  Button(onClick={save(NurseryPlant(id=existing?.id?:0,nurseryId=nurseryId,name=name.trim().ifBlank{null},price=price.toDoubleOrNull(),stock=stock.toIntOrNull()?:0,photoUri=photo.ifBlank{null},notes=notes.trim(),createdAt=existing?.createdAt?:System.currentTimeMillis()))},enabled=!invalidPrice&&!invalidStock,modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)){Text("Save plant",fontWeight=FontWeight.SemiBold)}
  }
 }
 
