@@ -10,10 +10,14 @@ import androidx.work.*
 import com.floral.app.MainActivity
 import com.floral.app.data.FloralDatabase
 import java.util.concurrent.TimeUnit
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 class DispatchReminderWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
  override suspend fun doWork(): Result {
   val id = inputData.getLong("order_id", -1L)
-  val order = FloralDatabase.get(applicationContext).orders().get(id) ?: return Result.success()
+  val database = FloralDatabase.get(applicationContext)
+  val order = database.orders().get(id) ?: return Result.success()
   val deadline = order.expectedDispatchAt ?: return Result.success()
   if (order.dispatchedAt != null || deadline <= System.currentTimeMillis()) return Result.success()
   val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -22,10 +26,15 @@ class DispatchReminderWorker(context: Context, params: WorkerParameters) : Corou
    applicationContext, id.toInt(), Intent(applicationContext, MainActivity::class.java),
    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
   )
+  val plantNames = database.orderPlants().getForOrder(id).map { it.name }.filter { it.isNotBlank() }
+  val visibleNames = plantNames.take(3).joinToString(", ").ifBlank { order.plantName ?: "this order" }
+  val extraCount = (plantNames.size - 3).coerceAtLeast(0)
+  val plantLabel = if (extraCount > 0) "$visibleNames +$extraCount more" else visibleNames
+  val dueDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(deadline))
   val n = NotificationCompat.Builder(applicationContext, "dispatch_deadlines")
    .setSmallIcon(android.R.drawable.ic_menu_my_calendar)
-   .setContentTitle("Dispatch due tomorrow")
-   .setContentText("Remember to dispatch " + (order.plantName ?: "this order") + ".")
+   .setContentTitle("Dispatch reminder")
+   .setContentText("Remember to dispatch $plantLabel by $dueDate.")
    .setContentIntent(openApp)
    .setAutoCancel(true).build()
   nm.notify(id.toInt(), n)
