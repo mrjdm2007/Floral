@@ -33,6 +33,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -53,9 +55,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-private val Forest=Color(0xFF173C2B)
+private val Forest=Color(0xFF244B36).copy(alpha=0.88f)
 private val Deep=Color(0xFF0B1B13)
-private val Panel=Color(0xFF142D20)
+private val Panel=Color(0xFF244634).copy(alpha=0.74f)
 private val Leaf=Color(0xFFA8C9A7)
 private val Cream=Color(0xFFF3EAD2)
 private val Muted=Color(0xFFB5C5B8)
@@ -100,7 +102,7 @@ class MainActivity:ComponentActivity(){
     }
    }
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
-    Surface(Modifier.fillMaxSize(),color=Deep){
+    Surface(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0B1B13),Color(0xFF10271B),Color(0xFF0A1811)))),color=Color.Transparent){
      when {
       editor -> MultiPlantOrderEditor(editing,editingPlants,{editor=false;editing=null;editingPlants=emptyList()}){o,plants,onComplete->
        lifecycleScope.launch {
@@ -227,7 +229,7 @@ class MainActivity:ComponentActivity(){
  fun inPeriod(o:Order,p:Int):Boolean {val c=Calendar.getInstance().apply{timeInMillis=o.dispatchedAt?:o.createdAt};return when(p){Calendar.WEEK_OF_YEAR->c.getWeekYear()==now.getWeekYear()&&c.get(Calendar.WEEK_OF_YEAR)==now.get(Calendar.WEEK_OF_YEAR);Calendar.MONTH->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)&&c.get(Calendar.MONTH)==now.get(Calendar.MONTH);else->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)}}
  val complete=orders.filter{it.financialsComplete}
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
-  Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(23.dp)){Column(Modifier.fillMaxWidth().padding(20.dp)){Text("OVERALL PROFIT",color=Leaf,fontSize=11.sp,letterSpacing=1.3.sp);Text(money(complete.sumOf{it.profit?:0.0}),color=Cream,fontSize=34.sp,fontWeight=FontWeight.Bold);Text("${complete.size} orders with complete financial details",color=Muted,fontSize=12.sp)}}
+  Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(23.dp),border=BorderStroke(1.dp,Color.White.copy(alpha=0.10f))){Column(Modifier.fillMaxWidth().padding(20.dp)){Text("OVERALL PROFIT",color=Leaf,fontSize=11.sp,letterSpacing=1.3.sp);Text(money(complete.sumOf{it.profit?:0.0}),color=Cream,fontSize=34.sp,fontWeight=FontWeight.Bold);Text("${complete.size} orders with complete financial details",color=Muted,fontSize=12.sp)}}
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Week" to Calendar.WEEK_OF_YEAR,"Month" to Calendar.MONTH,"Year" to Calendar.YEAR).forEach{(label,p)->Card(Modifier.weight(1f),colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(11.dp)){Text("This $label",color=Leaf,fontSize=10.sp);Text(money(complete.filter{inPeriod(it,p)}.sumOf{it.profit?:0.0}),color=Cream,fontWeight=FontWeight.SemiBold,fontSize=14.sp)}}}}
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Recent orders",color=Cream,fontWeight=FontWeight.SemiBold,fontSize=17.sp);Text("${orders.size} total",color=Muted,fontSize=11.sp)}
   if(orders.isEmpty()) Empty("Your first order starts here","Tap + or use the Floral widget to add one.")
@@ -256,7 +258,7 @@ class MainActivity:ComponentActivity(){
    }
   }
   if(selectedIds.isNotEmpty()){
-   Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(16.dp)){
+   Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(16.dp),border=BorderStroke(1.dp,Color.White.copy(alpha=0.09f))){
     Column(Modifier.fillMaxWidth().padding(10.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
      Text("Bulk actions",color=Cream,fontWeight=FontWeight.SemiBold)
      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
@@ -279,7 +281,7 @@ class MainActivity:ComponentActivity(){
  }
 }
 @Composable private fun OrderCard(o:Order,plants:List<OrderPlant>,open:()->Unit,toggleReceived:()->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
- Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(20.dp),elevation=CardDefaults.cardElevation(defaultElevation=3.dp)){
+ Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(20.dp),border=BorderStroke(1.dp,Color.White.copy(alpha=0.09f)),elevation=CardDefaults.cardElevation(defaultElevation=3.dp)){
   Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
    Row(Modifier.fillMaxWidth().clickable(onClick=open),verticalAlignment=Alignment.CenterVertically){
     if(o.photoUri!=null) AsyncImage(Uri.parse(o.photoUri),null,Modifier.size(58.dp)) else Box(Modifier.size(58.dp).background(Forest,RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Spa,null,tint=Leaf)}
