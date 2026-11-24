@@ -8,14 +8,15 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Order::class, Nursery::class, NurseryPlant::class, OrderPlant::class],
-    version = 5,
+    entities = [Order::class, Nursery::class, NurseryPlant::class, OrderPlant::class, Customer::class],
+    version = 6,
     exportSchema = true
 )
 abstract class FloralDatabase : RoomDatabase() {
     abstract fun orders(): OrderDao
     abstract fun nurseries(): NurseryDao
     abstract fun orderPlants(): OrderPlantDao
+    abstract fun customers(): CustomerDao
 
     companion object {
         private val MIGRATION_2_3 = object : Migration(2, 3) {
@@ -81,6 +82,29 @@ abstract class FloralDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS customers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    name TEXT NOT NULL,
+                    phone TEXT NOT NULL DEFAULT '',
+                    address TEXT NOT NULL DEFAULT '',
+                    notes TEXT NOT NULL DEFAULT '',
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )""".trimIndent())
+                db.execSQL("""INSERT INTO customers (name, phone, address, notes, createdAt, updatedAt)
+                    SELECT customerName, COALESCE(phone, ''), COALESCE(address, ''), '',
+                           MIN(createdAt), MAX(updatedAt)
+                    FROM orders
+                    WHERE customerName IS NOT NULL AND trim(customerName) != ''
+                    GROUP BY CASE
+                        WHEN phone IS NOT NULL AND trim(phone) != '' THEN phone
+                        ELSE lower(trim(customerName))
+                    END""".trimIndent())
+            }
+        }
+
         @Volatile private var instance: FloralDatabase? = null
 
         fun closeForRestore() {
@@ -95,7 +119,7 @@ abstract class FloralDatabase : RoomDatabase() {
                 context.applicationContext,
                 FloralDatabase::class.java,
                 "floral.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
         }
     }
 }
