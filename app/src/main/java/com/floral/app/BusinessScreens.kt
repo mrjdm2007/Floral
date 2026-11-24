@@ -31,10 +31,13 @@ private val BizForest = Color(0xFF173C2B)
 fun CustomerHistory(orders: List<Order>, plants: List<OrderPlant>, openOrder: (Order) -> Unit) {
     var query by remember { mutableStateOf("") }
     val customers = orders.filter { !it.customerName.isNullOrBlank() }
-        .groupBy { it.customerName!!.trim().lowercase() }
-        .map { (_, list) -> list.first().customerName!!.trim() to list }
-        .filter { it.first.contains(query, true) }
-        .sortedBy { it.first.lowercase() }
+        .groupBy { order ->
+            val phoneKey = order.phone.orEmpty().filter { it.isDigit() }
+            if (phoneKey.isNotBlank()) "phone:" + phoneKey else "name:" + order.customerName!!.trim().lowercase()
+        }
+        .map { (key, list) -> Triple(key, list.first().customerName!!.trim(), list) }
+        .filter { it.second.contains(query, true) || it.third.any { order -> order.phone.orEmpty().contains(query, true) } }
+        .sortedBy { it.second.lowercase() }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Customer history", color = BizCream, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
@@ -45,8 +48,8 @@ fun CustomerHistory(orders: List<Order>, plants: List<OrderPlant>, openOrder: (O
             Text("No customer records yet. Add a customer name in an order to create their history.", color = BizMuted)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
-                items(customers, key = { it.first.lowercase() }) { (name, customerOrders) ->
-                    var expanded by remember(name) { mutableStateOf(false) }
+                items(customers, key = { it.first }) { (customerKey, name, customerOrders) ->
+                    var expanded by remember(customerKey) { mutableStateOf(false) }
                     Card(colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(16.dp)) {
                         Column(Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(13.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -54,7 +57,7 @@ fun CustomerHistory(orders: List<Order>, plants: List<OrderPlant>, openOrder: (O
                                 Spacer(Modifier.width(9.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(name, color = BizCream, fontWeight = FontWeight.SemiBold)
-                                    Text("${customerOrders.size} order(s)", color = BizMuted, fontSize = 11.sp)
+                                    Text(customerOrders.size.toString() + " order(s) · " + customerOrders.firstOrNull()?.phone.orEmpty(), color = BizMuted, fontSize = 11.sp)
                                 }
                                 Text(if (expanded) "−" else "+", color = BizLeaf, fontSize = 22.sp)
                             }
