@@ -74,7 +74,12 @@ fun MultiPlantOrderEditor(
             photo = uri.toString()
         }
     }
-    val first = plants.firstOrNull() ?: PlantEntryDraft()
+    val invalidMoney = plants.any { plant ->
+        listOf(plant.cost, plant.selling, plant.finalPrice).any { value ->
+            value.isNotBlank() && (value.toDoubleOrNull()?.let { it < 0.0 } ?: true)
+        }
+    } || (courier.isNotBlank() && (courier.toDoubleOrNull()?.let { it < 0.0 } ?: true))
+    val canSave = plants.any { it.name.isNotBlank() } && !invalidMoney
     val missing = buildList {
         if (customer.isBlank()) add("Customer name")
         if (phone.isBlank()) add("Phone number")
@@ -82,6 +87,7 @@ fun MultiPlantOrderEditor(
         if (plants.none { it.name.isNotBlank() }) add("At least one plant name")
         if (plants.any { it.name.isNotBlank() && it.cost.toDoubleOrNull() == null }) add("Plant costs")
         if (plants.any { it.name.isNotBlank() && it.selling.toDoubleOrNull() == null }) add("Plant selling prices")
+        if (plants.any { it.name.isNotBlank() && it.finalPrice.toDoubleOrNull() == null }) add("Final agreed prices")
         if (courier.toDoubleOrNull() == null) add("Courier charges")
         if (expected == null) add("Expected dispatch date")
     }
@@ -139,6 +145,7 @@ fun MultiPlantOrderEditor(
             Text("Include saved FROM address on parcel label", color = Cream, fontSize = 13.sp)
         }
         OrderField("Notes / remarks for this order", notes, false) { notes = it }
+        if (invalidMoney) Text("Enter valid non-negative amounts. Remove invalid characters or negative values before saving.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         Card(colors = CardDefaults.cardColors(containerColor = Forest), shape = RoundedCornerShape(17.dp)) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text("Still to be entered · ${missing.size}", color = Cream, fontWeight = FontWeight.SemiBold)
@@ -147,8 +154,8 @@ fun MultiPlantOrderEditor(
             }
         }
         Button(onClick = {
-            val primary = plants.firstOrNull() ?: PlantEntryDraft()
             val namedPlants = plants.filter { it.name.isNotBlank() }
+            val primary = namedPlants.firstOrNull() ?: PlantEntryDraft()
             val totalCost = if (namedPlants.isNotEmpty() && namedPlants.all { it.cost.toDoubleOrNull() != null }) namedPlants.sumOf { it.cost.toDouble() } else null
             val totalSelling = if (namedPlants.isNotEmpty() && namedPlants.all { it.selling.toDoubleOrNull() != null }) namedPlants.sumOf { it.selling.toDouble() } else null
             val totalFinal = if (namedPlants.isNotEmpty() && namedPlants.all { it.finalPrice.toDoubleOrNull() != null }) namedPlants.sumOf { it.finalPrice.toDouble() } else null
@@ -160,8 +167,8 @@ fun MultiPlantOrderEditor(
                 finalPrice = totalFinal, courierCharge = courier.toDoubleOrNull(),
                 expectedDispatchAt = expected, dispatchedAt = dispatched, isReceived = order?.isReceived ?: false,
                 notes = notes, includeFromAddress = includeFrom, createdAt = order?.createdAt ?: System.currentTimeMillis()
-            ), plants.toList())
-        }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Leaf, contentColor = Deep)) {
+            ), namedPlants)
+        }, enabled = canSave, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Leaf, contentColor = Deep)) {
             Text("Save order", fontWeight = FontWeight.SemiBold)
         }
     }
