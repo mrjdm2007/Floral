@@ -19,7 +19,8 @@ class DispatchReminderWorker(context: Context, params: WorkerParameters) : Corou
   val database = FloralDatabase.get(applicationContext)
   val order = database.orders().get(id) ?: return Result.success()
   val deadline = order.expectedDispatchAt ?: return Result.success()
-  if (order.dispatchedAt != null || deadline <= System.currentTimeMillis()) return Result.success()
+  if (order.dispatchedAt != null) return Result.success()
+  val overdue = deadline <= System.currentTimeMillis()
   val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
   if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel("dispatch_deadlines", "Dispatch reminders", NotificationManager.IMPORTANCE_DEFAULT))
   val openApp = PendingIntent.getActivity(
@@ -33,8 +34,8 @@ class DispatchReminderWorker(context: Context, params: WorkerParameters) : Corou
   val dueDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(deadline))
   val n = NotificationCompat.Builder(applicationContext, "dispatch_deadlines")
    .setSmallIcon(android.R.drawable.ic_menu_my_calendar)
-   .setContentTitle("Dispatch reminder")
-   .setContentText("Remember to dispatch $plantLabel by $dueDate.")
+   .setContentTitle(if (overdue) "Dispatch overdue" else "Dispatch reminder")
+   .setContentText(if (overdue) "The dispatch date for $plantLabel was $dueDate. Update this order when dispatched." else "Remember to dispatch $plantLabel by $dueDate.")
    .setContentIntent(openApp)
    .setAutoCancel(true).build()
   nm.notify(id.toInt(), n)
@@ -45,10 +46,14 @@ object DispatchReminder {
  fun schedule(context: Context, id: Long, deadline: Long?) {
   val work = WorkManager.getInstance(context); val name = "dispatch-reminder-" + id
   work.cancelUniqueWork(name)
+  (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(id.toInt())
   if (deadline == null) return
   val delay = (deadline - TimeUnit.DAYS.toMillis(1) - System.currentTimeMillis()).coerceAtLeast(0L)
   val request = OneTimeWorkRequestBuilder<DispatchReminderWorker>().setInitialDelay(delay, TimeUnit.MILLISECONDS).setInputData(workDataOf("order_id" to id)).build()
   work.enqueueUniqueWork(name, ExistingWorkPolicy.REPLACE, request)
  }
- fun cancel(context: Context, id: Long) { WorkManager.getInstance(context).cancelUniqueWork("dispatch-reminder-" + id) }
+ fun cancel(context: Context, id: Long) {
+  WorkManager.getInstance(context).cancelUniqueWork("dispatch-reminder-" + id)
+  (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(id.toInt())
+ }
 }
