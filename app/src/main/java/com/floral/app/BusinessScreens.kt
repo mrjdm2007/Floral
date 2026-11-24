@@ -1,6 +1,7 @@
 package com.floral.app
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,8 +25,8 @@ import java.util.Calendar
 private val BizCream = Color(0xFFF3EAD2)
 private val BizLeaf = Color(0xFFA8C9A7)
 private val BizMuted = Color(0xFFB5C5B8)
-private val BizPanel = Color(0xFF142D20)
-private val BizForest = Color(0xFF173C2B)
+private val BizPanel = Color(0xFF244634).copy(alpha = 0.74f)
+private val BizForest = Color(0xFF244B36).copy(alpha = 0.88f)
 
 @Composable
 fun CustomerHistory(orders: List<Order>, plants: List<OrderPlant>, openOrder: (Order) -> Unit) {
@@ -50,7 +51,7 @@ fun CustomerHistory(orders: List<Order>, plants: List<OrderPlant>, openOrder: (O
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
                 items(customers, key = { it.first }) { (customerKey, name, customerOrders) ->
                     var expanded by remember(customerKey) { mutableStateOf(false) }
-                    Card(colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(16.dp)) {
+                    Card(colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.09f))) {
                         Column(Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(13.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Person, null, tint = BizLeaf)
@@ -170,7 +171,7 @@ fun DispatchCalendar(orders: List<Order>, plants: List<OrderPlant>, openOrder: (
                 items(selectedOrders, key = { it.id }) { order ->
                     val timestamp = eventDate(order)?.timeInMillis ?: 0L
                     Card(Modifier.fillMaxWidth().clickable { openOrder(order) },
-                        colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
+                        colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.09f))) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.width(58.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(java.text.SimpleDateFormat("dd", java.util.Locale.getDefault()).format(java.util.Date(timestamp)),
