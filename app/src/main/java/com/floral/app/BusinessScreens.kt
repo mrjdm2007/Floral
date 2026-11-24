@@ -107,7 +107,7 @@ fun DispatchCalendar(orders: List<Order>, plants: List<OrderPlant>, openOrder: (
         eventDate(order)?.get(Calendar.DAY_OF_MONTH) == selectedDay
     }.sortedBy { it.customerName.orEmpty().lowercase() }
     val eventDays = monthOrders.mapNotNull { eventDate(it)?.get(Calendar.DAY_OF_MONTH) }.toSet()
-    val weekdayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+    val weekdayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Dispatch calendar", color = BizCream, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
@@ -125,7 +125,7 @@ fun DispatchCalendar(orders: List<Order>, plants: List<OrderPlant>, openOrder: (
                 Row(Modifier.fillMaxWidth()) {
                     weekdayLabels.forEach { label ->
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            Text(label, color = BizMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text(label, color = BizMuted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
