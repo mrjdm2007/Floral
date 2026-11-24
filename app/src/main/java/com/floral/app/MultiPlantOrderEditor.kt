@@ -47,7 +47,7 @@ fun MultiPlantOrderEditor(
     order: Order?,
     existingPlants: List<OrderPlant>,
     cancel: () -> Unit,
-    save: (Order, List<PlantEntryDraft>) -> Unit
+    save: (Order, List<PlantEntryDraft>, (Boolean) -> Unit) -> Unit
 ) {
     var customer by remember(order?.id) { mutableStateOf(order?.customerName.orEmpty()) }
     var phone by remember(order?.id) { mutableStateOf(order?.phone.orEmpty()) }
@@ -67,6 +67,7 @@ fun MultiPlantOrderEditor(
     var dispatched by remember(order?.id) { mutableStateOf(order?.dispatchedAt) }
     var notes by remember(order?.id) { mutableStateOf(order?.notes.orEmpty()) }
     var includeFrom by remember(order?.id) { mutableStateOf(order?.includeFromAddress ?: false) }
+    var saving by remember(order?.id) { mutableStateOf(false) }
     val context = LocalContext.current
     val picker = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -153,6 +154,8 @@ fun MultiPlantOrderEditor(
             }
         }
         Button(onClick = {
+            if (saving) return@Button
+            saving = true
             val namedPlants = plants.filter { it.name.isNotBlank() }
             val primary = namedPlants.firstOrNull() ?: PlantEntryDraft()
             val totalCost = if (namedPlants.isNotEmpty() && namedPlants.all { it.cost.toDoubleOrNull() != null }) namedPlants.sumOf { it.cost.toDouble() } else null
@@ -168,9 +171,9 @@ fun MultiPlantOrderEditor(
                 finalPrice = totalFinal, courierCharge = courier.toDoubleOrNull(),
                 expectedDispatchAt = expected, dispatchedAt = dispatched, isReceived = order?.isReceived ?: false,
                 notes = notes, includeFromAddress = includeFrom, createdAt = order?.createdAt ?: System.currentTimeMillis()
-            ), namedPlants)
-        }, enabled = canSave, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Leaf, contentColor = Deep)) {
-            Text("Save order", fontWeight = FontWeight.SemiBold)
+            ), namedPlants) { saving = false }
+        }, enabled = canSave && !saving, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Leaf, contentColor = Deep)) {
+            Text(if (saving) "Saving…" else "Save order", fontWeight = FontWeight.SemiBold)
         }
     }
 }
