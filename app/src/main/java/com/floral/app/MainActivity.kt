@@ -173,9 +173,18 @@ class MainActivity:ComponentActivity(){
           onBack={printPdf=null},
           onPrint={file->
            runCatching {
+            val manager=getSystemService(android.content.Context.PRINT_SERVICE) as android.print.PrintManager
+            val attributes=android.print.PrintAttributes.Builder()
+             .setMediaSize(android.print.PrintAttributes.MediaSize.ISO_A4)
+             .build()
+            manager.print("Floral address labels",PdfFilePrintAdapter(file),attributes)
+           }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not open print service",android.widget.Toast.LENGTH_LONG).show() }
+          },
+          onShare={file->
+           runCatching {
             val uri=FileProvider.getUriForFile(this@MainActivity,"${packageName}.fileprovider",file)
             val share=Intent(Intent.ACTION_SEND).apply { type="application/pdf";putExtra(Intent.EXTRA_STREAM,uri);addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-            startActivity(Intent.createChooser(share,"Print or share address PDF"))
+            startActivity(Intent.createChooser(share,"Share address PDF"))
            }.onFailure { android.widget.Toast.makeText(this@MainActivity,it.message ?: "Could not share PDF",android.widget.Toast.LENGTH_LONG).show() }
           }
          )
