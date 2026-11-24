@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.room.withTransaction
 import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
 import com.floral.app.data.*
@@ -101,9 +102,12 @@ class MainActivity:ComponentActivity(){
      when {
       editor -> MultiPlantOrderEditor(editing,editingPlants,{editor=false;editing=null;editingPlants=emptyList()}){o,plants->
        lifecycleScope.launch {
-        val id=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id}
-        orderPlantDao.deleteForOrder(id)
-        orderPlantDao.insertAll(plants.map { p -> OrderPlant(orderId=id,name=p.name,plantCost=p.cost.toDoubleOrNull(),sellingPrice=p.selling.toDoubleOrNull(),finalPrice=p.finalPrice.toDoubleOrNull(),isPaid=p.paid) })
+        val id=db.withTransaction {
+         val savedId=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id}
+         orderPlantDao.deleteForOrder(savedId)
+         orderPlantDao.insertAll(plants.map { p -> OrderPlant(orderId=savedId,name=p.name,plantCost=p.cost.toDoubleOrNull(),sellingPrice=p.selling.toDoubleOrNull(),finalPrice=p.finalPrice.toDoubleOrNull(),isPaid=p.paid) })
+         savedId
+        }
         if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt)
         editor=false;editing=null;editingPlants=emptyList()
        }
@@ -130,7 +134,7 @@ class MainActivity:ComponentActivity(){
        }
       ) { innerPadding ->
        var swipeDistance by remember { mutableFloatStateOf(0f) }
-       Column(Modifier.fillMaxSize().padding(innerPadding).padding(top=10.dp).padding(horizontal=18.dp).pointerInput(page) {
+       Column(Modifier.fillMaxSize().padding(innerPadding).padding(top=22.dp).padding(horizontal=18.dp).pointerInput(page) {
         detectHorizontalDragGestures(
          onHorizontalDrag={ _, amount -> swipeDistance += amount },
          onDragEnd={
@@ -151,7 +155,7 @@ class MainActivity:ComponentActivity(){
        Spacer(Modifier.height(12.dp))
        Crossfade(targetState=page,label="tab-transition"){ activePage ->
        when(activePage){
-        "Overview"->Overview(orders,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
+        "Overview"->Overview(orders,allOrderPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}},{p,v->lifecycleScope.launch{orderPlantDao.setPaid(p.id,v)}})
         "Customers"->CustomerHistory(orders,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Calendar"->DispatchCalendar(orders,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Search"->GlobalSearch(orders,nurseries,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
@@ -180,7 +184,7 @@ class MainActivity:ComponentActivity(){
          fromAddress=value
          android.widget.Toast.makeText(this@MainActivity,"Sender address saved",android.widget.Toast.LENGTH_SHORT).show()
         }
-        else->OrderList(orders,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}})
+        else->OrderList(orders,allOrderPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}},{p,v->lifecycleScope.launch{orderPlantDao.setPaid(p.id,v)}})
        }
        }
        }
@@ -192,7 +196,7 @@ class MainActivity:ComponentActivity(){
  }
 }
 
-@Composable private fun Overview(orders:List<Order>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit){
+@Composable private fun Overview(orders:List<Order>,plants:List<OrderPlant>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
  val now=Calendar.getInstance()
  fun inPeriod(o:Order,p:Int):Boolean {val c=Calendar.getInstance().apply{timeInMillis=o.dispatchedAt?:o.createdAt};return when(p){Calendar.WEEK_OF_YEAR->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)&&c.get(Calendar.WEEK_OF_YEAR)==now.get(Calendar.WEEK_OF_YEAR);Calendar.MONTH->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)&&c.get(Calendar.MONTH)==now.get(Calendar.MONTH);else->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)}}
  val complete=orders.filter{it.financialsComplete}
@@ -201,32 +205,47 @@ class MainActivity:ComponentActivity(){
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Week" to Calendar.WEEK_OF_YEAR,"Month" to Calendar.MONTH,"Year" to Calendar.YEAR).forEach{(label,p)->Card(Modifier.weight(1f),colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(11.dp)){Text("This $label",color=Leaf,fontSize=10.sp);Text(money(complete.filter{inPeriod(it,p)}.sumOf{it.profit?:0.0}),color=Cream,fontWeight=FontWeight.SemiBold,fontSize=14.sp)}}}}
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Recent orders",color=Cream,fontWeight=FontWeight.SemiBold,fontSize=17.sp);Text("${orders.size} total",color=Muted,fontSize=11.sp)}
   if(orders.isEmpty()) Empty("Your first order starts here","Tap + or use the Floral widget to add one.")
-  else LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=20.dp)){items(orders.take(6),key={it.id}){o->OrderCard(o,{open(o)},{toggle(o,!o.isReceived)})}}
+  else LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=20.dp)){items(orders.take(6),key={it.id}){o->OrderCard(o,plants.filter{it.orderId==o.id},{open(o)},{toggle(o,!o.isReceived)},togglePaid)}}
  }
 }
-@Composable private fun OrderList(orders:List<Order>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit){
+@Composable private fun OrderList(orders:List<Order>,plants:List<OrderPlant>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
  var q by remember{mutableStateOf("")};var filter by remember{mutableStateOf("All")}
  val visible=orders.filter{listOfNotNull(it.plantName,it.customerName,it.phone).any{v->v.contains(q,true)}&&(filter=="All"||(filter=="Received"&&it.isReceived)||(filter=="Pending"&&!it.isReceived))}
  Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
   OutlinedTextField(q,{q=it},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("Search plant, customer or phone")},leadingIcon={Icon(Icons.Default.Search,null)})
   Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){listOf("All","Pending","Received").forEach{FilterChip(selected=filter==it,onClick={filter=it},label={Text(it)})}}
   if(visible.isEmpty()) Empty("No matching orders","Try another search or add a new order.")
-  else LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=20.dp)){items(visible,key={it.id}){o->OrderCard(o,{open(o)},{toggle(o,!o.isReceived)})}}
+  else LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=20.dp)){items(visible,key={it.id}){o->OrderCard(o,plants.filter{it.orderId==o.id},{open(o)},{toggle(o,!o.isReceived)},togglePaid)}}
  }
 }
-@Composable private fun OrderCard(o:Order,open:()->Unit,toggle:()->Unit){
+@Composable private fun OrderCard(o:Order,plants:List<OrderPlant>,open:()->Unit,toggleReceived:()->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
  Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(18.dp)){
-  Row(Modifier.fillMaxWidth().clickable(onClick=open).padding(12.dp),verticalAlignment=Alignment.CenterVertically){
-   if(o.photoUri!=null) AsyncImage(Uri.parse(o.photoUri),null,Modifier.size(58.dp)) else Box(Modifier.size(58.dp).background(Forest,RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Spa,null,tint=Leaf)}
-   Spacer(Modifier.width(11.dp))
-   Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
-    Text(o.plantName?.ifBlank{"Unnamed plant"}?:"Unnamed plant",color=Cream,fontWeight=FontWeight.SemiBold)
-    Text(o.customerName?:"Customer not entered",color=Leaf,fontSize=12.sp)
-    Text(if(o.dispatchedAt!=null)"Dispatched · ${date(o.dispatchedAt)}" else o.expectedDispatchAt?.let{"Dispatch due · ${date(it)}"}?:"Dispatch date not set",color=Muted,fontSize=10.sp)
-    Text(if(o.missingFields.isEmpty())"All details complete" else "${o.missingFields.size} details left",color=Muted,fontSize=10.sp)
-    if(o.notes.isNotBlank())Text("Note: ${o.notes}",color=Cream,fontSize=10.sp,maxLines=1)
+  Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
+   Row(Modifier.fillMaxWidth().clickable(onClick=open),verticalAlignment=Alignment.CenterVertically){
+    if(o.photoUri!=null) AsyncImage(Uri.parse(o.photoUri),null,Modifier.size(58.dp)) else Box(Modifier.size(58.dp).background(Forest,RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Spa,null,tint=Leaf)}
+    Spacer(Modifier.width(11.dp))
+    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
+     Text(o.customerName?: "Customer not entered",color=Cream,fontWeight=FontWeight.SemiBold)
+     Text(if(o.dispatchedAt!=null)"Dispatched · ${date(o.dispatchedAt)}" else o.expectedDispatchAt?.let{"Dispatch due · ${date(it)}"}?:"Dispatch date not set",color=Muted,fontSize=10.sp)
+     Text(if(o.missingFields.isEmpty())"Order details complete" else "${o.missingFields.size} details left",color=Muted,fontSize=10.sp)
+     if(o.notes.isNotBlank())Text("Note: ${o.notes}",color=Cream,fontSize=10.sp,maxLines=1)
+    }
+    Column(horizontalAlignment=Alignment.CenterHorizontally){Checkbox(o.isReceived,{toggleReceived()},colors=CheckboxDefaults.colors(checkedColor=Leaf));Text("Received",color=if(o.isReceived)Leaf else Muted,fontSize=9.sp)}
    }
-   Column(horizontalAlignment=Alignment.CenterHorizontally){Checkbox(o.isReceived,{toggle()},colors=CheckboxDefaults.colors(checkedColor=Leaf));Text("Received",color=if(o.isReceived)Leaf else Muted,fontSize=9.sp)}
+   if(plants.isNotEmpty()){
+    Divider(color=Forest)
+    plants.forEach { plant ->
+     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+      Text(plant.name.ifBlank{"Unnamed plant"},color=Cream,fontSize=12.sp,modifier=Modifier.weight(1f))
+      Row(verticalAlignment=Alignment.CenterVertically){
+       Checkbox(checked=plant.isPaid,onCheckedChange={togglePaid(plant,it)},colors=CheckboxDefaults.colors(checkedColor=Leaf))
+       Text(if(plant.isPaid)"Paid" else "Unpaid",color=if(plant.isPaid)Leaf else Muted,fontSize=10.sp)
+      }
+     }
+    }
+   } else {
+    Text(o.plantName?.ifBlank{"Unnamed plant"}?:"Plant details not entered",color=Cream,fontSize=12.sp)
+   }
   }
  }
 }
