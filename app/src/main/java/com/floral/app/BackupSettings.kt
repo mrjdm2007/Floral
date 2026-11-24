@@ -66,7 +66,7 @@ fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (S
 
         Spacer(Modifier.height(8.dp))
         Text("Data backup", style = MaterialTheme.typography.titleLarge, color = Color(0xFFF3EAD2))
-        Text("Create a ZIP backup of your Floral database, saved sender address and app-managed photo files. Keep a copy somewhere safe.", color = Color(0xFFB5C5B8))
+        Text("Create a ZIP backup of your orders, nursery profiles, plant and stock records, saved sender address, and every linked photo. Keep a copy somewhere safe.", color = Color(0xFFB5C5B8))
         Button(
             onClick = { exportPicker.launch("Floral-backup.zip") },
             modifier = Modifier.fillMaxWidth(),
@@ -77,7 +77,7 @@ fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (S
             modifier = Modifier.fillMaxWidth()
         ) { Text("Restore from backup") }
         Text(
-            "Note: photos selected directly from another app or gallery may remain linked to their original provider URI and might not transfer to a different phone. App-managed nursery photos are included.",
+            "Floral copies linked photos into the backup and restores them into app-managed storage. If a photo permission has expired, the backup will stop and tell you which record needs its photo selected again.",
             color = Color(0xFFB5C5B8),
             style = MaterialTheme.typography.bodySmall
         )
