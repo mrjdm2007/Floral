@@ -110,7 +110,11 @@ class MainActivity:ComponentActivity(){
           orderPlantDao.insertAll(plants.map { p -> OrderPlant(orderId=savedId,name=p.name,plantCost=p.cost.toDoubleOrNull(),sellingPrice=p.selling.toDoubleOrNull(),finalPrice=p.finalPrice.toDoubleOrNull(),isPaid=p.paid) })
           savedId
          }
-         if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt)
+         runCatching {
+          if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt)
+         }.onFailure { reminderError ->
+          android.widget.Toast.makeText(this@MainActivity,"Order saved, but reminder scheduling failed: " + (reminderError.message ?: "unknown error"),android.widget.Toast.LENGTH_LONG).show()
+         }
          editor=false;editing=null;editingPlants=emptyList()
          onComplete(true)
         } catch(error: Exception) {
