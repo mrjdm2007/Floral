@@ -166,12 +166,33 @@ class MainActivity:ComponentActivity(){
          onDragCancel={swipeDistance=0f}
         )
        }){
-       Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-        Column { Text("Floral",color=Cream,fontSize=31.sp,fontWeight=FontWeight.SemiBold);Text("A LITTLE MORE ORGANIZED, EVERY DAY",color=Leaf,fontSize=9.sp,letterSpacing=1.5.sp) }
+       Row(Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 12.dp),verticalAlignment=Alignment.CenterVertically){
+        Column(Modifier.weight(1f), verticalArrangement=Arrangement.spacedBy(3.dp)) {
+         Text("Floral",color=Cream,fontSize=29.sp,fontWeight=FontWeight.SemiBold,letterSpacing=(-0.5).sp)
+         Text("ORDERS  ·  CUSTOMERS  ·  INVENTORY",color=Muted,fontSize=9.sp,fontWeight=FontWeight.Medium,letterSpacing=1.15.sp)
+        }
+        Surface(color=Panel, shape=RoundedCornerShape(14.dp), border=BorderStroke(1.dp,Color.White.copy(alpha=.10f))) {
+         Row(Modifier.padding(horizontal=11.dp, vertical=8.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+          Box(Modifier.size(7.dp).background(Leaf, RoundedCornerShape(50)))
+          Text("MANAGEMENT",color=Leaf,fontSize=9.sp,fontWeight=FontWeight.SemiBold,letterSpacing=.6.sp)
+         }
+        }
        }
-       Spacer(Modifier.height(16.dp))
-       Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Overview","Orders","Customers","Calendar","Search","Finances","Nurseries","Print","Settings").forEach{FilterChip(selected=page==it,onClick={page=it},label={Text(it,fontSize=12.sp)})}}
-       Spacer(Modifier.height(12.dp))
+       HorizontalDivider(color=Color.White.copy(alpha=.10f), thickness=1.dp)
+       Spacer(Modifier.height(10.dp))
+       Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(7.dp)){
+        listOf("Overview","Orders","Customers","Calendar","Search","Finances","Nurseries","Print","Settings").forEach{
+         FilterChip(
+          selected=page==it,
+          onClick={page=it},
+          label={Text(it,fontSize=12.sp,fontWeight=if(page==it)FontWeight.SemiBold else FontWeight.Medium)},
+          shape=RoundedCornerShape(12.dp),
+          border=FilterChipDefaults.filterChipBorder(enabled=true,selected=page==it,borderColor=Color.White.copy(alpha=.10f),selectedBorderColor=Leaf.copy(alpha=.55f)),
+          colors=FilterChipDefaults.filterChipColors(selectedContainerColor=Leaf,selectedLabelColor=Deep,containerColor=Panel,labelColor=Muted)
+         )
+        }
+       }
+       Spacer(Modifier.height(14.dp))
        Crossfade(targetState=page,label="tab-transition"){ activePage ->
        when(activePage){
         "Overview"->Overview(orders,allOrderPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}},{p,v->lifecycleScope.launch{orderPlantDao.setPaid(p.id,v)}})
