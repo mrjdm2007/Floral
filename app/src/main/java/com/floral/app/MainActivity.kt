@@ -220,10 +220,14 @@ class MainActivity:ComponentActivity(){
 }
 @Composable private fun OrderList(orders:List<Order>,plants:List<OrderPlant>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
  var q by remember{mutableStateOf("")};var filter by remember{mutableStateOf("All")}
- val visible=orders.filter{o->(q.isBlank()||listOfNotNull(o.plantName,o.customerName,o.phone,o.address,o.notes).any{it.contains(q,true)}||plants.any{it.orderId==o.id&&it.name.contains(q,true)})&&(filter=="All"||(filter=="Received"&&o.isReceived)||(filter=="Pending"&&!o.isReceived))}
+ val visible=orders.filter{o->
+  val orderPlants=plants.filter{it.orderId==o.id}
+  (q.isBlank()||listOfNotNull(o.plantName,o.customerName,o.phone,o.address,o.notes).any{it.contains(q,true)}||orderPlants.any{it.name.contains(q,true)}) &&
+  (filter=="All"||(filter=="Received"&&o.isReceived)||(filter=="Pending"&&!o.isReceived)||(filter=="Paid"&&orderPlants.isNotEmpty()&&orderPlants.all{it.isPaid})||(filter=="Unpaid"&&orderPlants.any{!it.isPaid}))
+ }
  Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
   OutlinedTextField(q,{q=it},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("Search plant, customer or phone")},leadingIcon={Icon(Icons.Default.Search,null)})
-  Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){listOf("All","Pending","Received").forEach{FilterChip(selected=filter==it,onClick={filter=it},label={Text(it)})}}
+  Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(7.dp)){listOf("All","Pending","Received","Paid","Unpaid").forEach{FilterChip(selected=filter==it,onClick={filter=it},label={Text(it)})}}
   if(visible.isEmpty()) Empty("No matching orders","Try another search or add a new order.")
   else LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=20.dp)){items(visible,key={it.id}){o->OrderCard(o,plants.filter{it.orderId==o.id},{open(o)},{toggle(o,!o.isReceived)},togglePaid)}}
  }
