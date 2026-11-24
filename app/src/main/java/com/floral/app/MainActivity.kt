@@ -361,6 +361,7 @@ class MainActivity:ComponentActivity(){
  val context=androidx.compose.ui.platform.LocalContext.current
  var name by remember(existing?.id){mutableStateOf(existing?.name.orEmpty())};var price by remember(existing?.id){mutableStateOf(existing?.price?.toString().orEmpty())};var notes by remember(existing?.id){mutableStateOf(existing?.notes.orEmpty())};var photo by remember(existing?.id){mutableStateOf(existing?.photoUri.orEmpty())}
  val picker=androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){u->if(u!=null){runCatching{context.contentResolver.takePersistableUriPermission(u,Intent.FLAG_GRANT_READ_URI_PERMISSION)};photo=u.toString()}}
+ val invalidPrice = price.isNotBlank() && (price.toDoubleOrNull()?.let { it < 0.0 } ?: true)
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(existing==null)"Add nursery plant" else "Edit plant",color=Cream,fontSize=24.sp,fontWeight=FontWeight.SemiBold);TextButton(onClick=cancel){Text("Cancel")}}
   Text("Plant details are optional. This entry will be saved under its nursery.",color=Leaf,fontSize=12.sp)
@@ -368,7 +369,8 @@ class MainActivity:ComponentActivity(){
   OutlinedButton(onClick={picker.launch(arrayOf("image/*"))},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.Image,null);Text(if(photo.isBlank())"Choose plant photo" else "Change plant photo")}
   if(photo.isNotBlank())TextButton(onClick={photo=""}){Text("Remove photo")}
   Field("Plant name",name){name=it};Field("Nursery price (₹)",price,true,KeyboardType.Decimal){price=it};Field("Plant notes",notes,false){notes=it}
-  Button(onClick={save(NurseryPlant(id=existing?.id?:0,nurseryId=nurseryId,name=name.trim().ifBlank{null},price=price.toDoubleOrNull(),photoUri=photo.ifBlank{null},notes=notes.trim(),createdAt=existing?.createdAt?:System.currentTimeMillis()))},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)){Text("Save plant",fontWeight=FontWeight.SemiBold)}
+  if(invalidPrice)Text("Enter a valid non-negative nursery price.",color=MaterialTheme.colorScheme.error,fontSize=12.sp)
+  Button(onClick={save(NurseryPlant(id=existing?.id?:0,nurseryId=nurseryId,name=name.trim().ifBlank{null},price=price.toDoubleOrNull(),photoUri=photo.ifBlank{null},notes=notes.trim(),createdAt=existing?.createdAt?:System.currentTimeMillis()))},enabled=!invalidPrice,modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Leaf,contentColor=Deep)){Text("Save plant",fontWeight=FontWeight.SemiBold)}
  }
 }
 
