@@ -111,8 +111,12 @@ fun DispatchCalendar(orders: List<Order>, plants: List<OrderPlant>, openOrder: (
     val weekdayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Dispatch calendar", color = BizCream, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
-        Card(colors = CardDefaults.cardColors(containerColor = BizForest), shape = RoundedCornerShape(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("SCHEDULE", color = BizLeaf, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp)
+            Text("Dispatch calendar", color = BizCream, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = BizForest), shape = RoundedCornerShape(19.dp),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = .10f))) {
             Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween) {
@@ -171,7 +175,7 @@ fun DispatchCalendar(orders: List<Order>, plants: List<OrderPlant>, openOrder: (
                 items(selectedOrders, key = { it.id }) { order ->
                     val timestamp = eventDate(order)?.timeInMillis ?: 0L
                     Card(Modifier.fillMaxWidth().clickable { openOrder(order) },
-                        colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.09f))) {
+                        colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(17.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.09f))) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.width(58.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(java.text.SimpleDateFormat("dd", java.util.Locale.getDefault()).format(java.util.Date(timestamp)),
@@ -206,12 +210,17 @@ fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, plants: List<Ord
             nurseryPlants.any { it.nurseryId == nursery.id && listOfNotNull(it.name, it.notes).any { value -> value.contains(query, true) } }
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Search Floral", color = BizCream, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
-        OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Customer, phone, plant, note or nursery") })
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("FIND A RECORD", color = BizLeaf, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp)
+            Text("Search", color = BizCream, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+        }
+        OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+            shape = RoundedCornerShape(15.dp),
+            placeholder = { Text("Customer, phone, plant, note or nursery") })
         if (query.isNotBlank() && matches.isEmpty() && nurseryMatches.isEmpty()) Text("No matching records.", color = BizMuted)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
             items(matches, key = { "order-" + it.id }) { order ->
-                Card(Modifier.fillMaxWidth().clickable { onOpenOrder(order) }, colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
+                Card(Modifier.fillMaxWidth().clickable { onOpenOrder(order) }, colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(17.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = .08f))) {
                     Column(Modifier.padding(12.dp)) {
                         Text(plants.filter { it.orderId == order.id }.joinToString(", ") { it.name }.ifBlank { order.plantName ?: "Plant order" }, color = BizCream, fontWeight = FontWeight.SemiBold)
                         Text(order.customerName ?: "Customer not entered", color = BizLeaf, fontSize = 12.sp)
