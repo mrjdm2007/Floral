@@ -5,6 +5,10 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -52,38 +56,57 @@ fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (S
     }
 
     Column(
-        Modifier.fillMaxSize().padding(18.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFF3EAD2))
-        Text("Default FROM address", style = MaterialTheme.typography.titleMedium, color = Color(0xFFA8C9A7))
-        Text("Paste the complete sender address exactly as you want it printed, including name, phone number, PIN code and all address lines.", color = Color(0xFFB5C5B8))
-        OutlinedTextField(
-            value = address,
-            onValueChange = { address = it },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 4,
-            maxLines = 8,
-            placeholder = { Text("Paste complete sender address here") }
-        )
-        Button(
-            onClick = { onSaveAddress(address) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA8C9A7), contentColor = Color(0xFF0B1B13))
-        ) { Text("Save sender address") }
-
-        Spacer(Modifier.height(8.dp))
-        Text("Data backup", style = MaterialTheme.typography.titleLarge, color = Color(0xFFF3EAD2))
-        Text("Create a ZIP backup of your orders, nursery profiles, plant and stock records, saved sender address, and every linked photo. Keep a copy somewhere safe.", color = Color(0xFFB5C5B8))
-        Button(
-            onClick = { exportPicker.launch("Floral-backup.zip") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA8C9A7), contentColor = Color(0xFF0B1B13))
-        ) { Text("Create backup") }
-        OutlinedButton(
-            onClick = { importPicker.launch(arrayOf("application/zip", "application/octet-stream")) },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Restore from backup") }
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xCC1D3B2D)),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.09f)),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Default FROM address", style = MaterialTheme.typography.titleMedium, color = Color(0xFFA8C9A7))
+                Text("Paste the complete sender address exactly as you want it printed, including name, phone number, PIN code and all address lines.", color = Color(0xFFB5C5B8))
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4,
+                    maxLines = 8,
+                    placeholder = { Text("Paste complete sender address here") }
+                )
+                Button(
+                    onClick = { onSaveAddress(address) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA8C9A7), contentColor = Color(0xFF0B1B13))
+                ) { Text("Save sender address") }
+            }
+        }
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xCC1D3B2D)),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.09f)),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Data backup", style = MaterialTheme.typography.titleLarge, color = Color(0xFFF3EAD2))
+                Text("Create a ZIP backup of your orders, nursery profiles, plant and stock records, saved sender address, and every linked photo. Keep a copy somewhere safe.", color = Color(0xFFB5C5B8))
+                Button(
+                    onClick = { exportPicker.launch("Floral-backup.zip") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA8C9A7), contentColor = Color(0xFF0B1B13))
+                ) { Text("Create backup") }
+                OutlinedButton(
+                    onClick = { importPicker.launch(arrayOf("application/zip", "application/octet-stream")) },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Restore from backup") }
+                Text(
+                    "Floral copies linked photos into the backup and restores them into app-managed storage. If a photo permission has expired, the backup will stop and tell you which record needs its photo selected again.",
+                    color = Color(0xFFB5C5B8),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
         Text(
             "Floral copies linked photos into the backup and restores them into app-managed storage. If a photo permission has expired, the backup will stop and tell you which record needs its photo selected again.",
             color = Color(0xFFB5C5B8),
