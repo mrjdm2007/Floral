@@ -41,9 +41,9 @@ fun CustomerHistory(orders: List<Order>, plants: List<OrderPlant>, openOrder: (O
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Customer history", color = BizCream, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
-        Text("Each customer name keeps all their orders together.", color = BizMuted, fontSize = 12.sp)
+        Text("Orders group by phone number when available, or by name if no phone is saved.", color = BizMuted, fontSize = 12.sp)
         OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
-            placeholder = { Text("Search customer name") })
+            placeholder = { Text("Search customer or phone") })
         if (customers.isEmpty()) {
             Text("No customer records yet. Add a customer name in an order to create their history.", color = BizMuted)
         } else {
