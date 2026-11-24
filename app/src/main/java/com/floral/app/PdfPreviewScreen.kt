@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +36,7 @@ private val PreviewCream = Color(0xFFF3EAD2)
 private val PreviewMuted = Color(0xFFB5C5B8)
 
 @Composable
-fun PdfPreviewScreen(file: File, onBack: () -> Unit, onPrint: (File) -> Unit) {
+fun PdfPreviewScreen(file: File, onBack: () -> Unit, onPrint: (File) -> Unit, onShare: (File) -> Unit) {
     val pageCountState = produceState<Int?>(initialValue = null, file) {
         value = withContext(Dispatchers.IO) {
             runCatching {
@@ -89,21 +90,32 @@ fun PdfPreviewScreen(file: File, onBack: () -> Unit, onPrint: (File) -> Unit) {
         }
 
         Surface(color = PreviewForest, shadowElevation = 8.dp) {
-            Button(
-                onClick = { onPrint(file) },
-                enabled = (pageCount ?: 0) > 0,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PreviewLeaf,
-                    contentColor = PreviewDeep,
-                    disabledContainerColor = PreviewPanel,
-                    disabledContentColor = PreviewMuted
-                )
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
-                Icon(Icons.Default.Print, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Print / Share PDF", fontWeight = FontWeight.SemiBold)
+                Button(
+                    onClick = { onPrint(file) },
+                    enabled = (pageCount ?: 0) > 0,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PreviewLeaf, contentColor = PreviewDeep)
+                ) {
+                    Icon(Icons.Default.Print, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Print", fontWeight = FontWeight.SemiBold)
+                }
+                OutlinedButton(
+                    onClick = { onShare(file) },
+                    enabled = (pageCount ?: 0) > 0,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PreviewCream)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Share PDF", fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
