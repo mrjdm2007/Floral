@@ -65,10 +65,11 @@ class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){
   super.onCreate(savedInstanceState)
   if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) notif.launch(Manifest.permission.POST_NOTIFICATIONS)
-  val db=FloralDatabase.get(this);val dao=db.orders();val nurseryDao=db.nurseries();val orderPlantDao=db.orderPlants()
+  val db=FloralDatabase.get(this);val dao=db.orders();val nurseryDao=db.nurseries();val orderPlantDao=db.orderPlants();val customerDao=db.customers()
   setContent {
    val orders by dao.observeAll().collectAsStateWithLifecycle(emptyList())
    val allOrderPlants by orderPlantDao.observeAll().collectAsStateWithLifecycle(emptyList())
+   val customers by customerDao.observeAll().collectAsStateWithLifecycle(emptyList())
    LaunchedEffect(orders) {
     orders.forEach { order ->
      if (order.dispatchedAt != null) DispatchReminder.cancel(this@MainActivity, order.id)
@@ -108,6 +109,7 @@ class MainActivity:ComponentActivity(){
           val savedId=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id}
           orderPlantDao.deleteForOrder(savedId)
           orderPlantDao.insertAll(plants.map { p -> OrderPlant(orderId=savedId,name=p.name,plantCost=p.cost.toDoubleOrNull(),sellingPrice=p.selling.toDoubleOrNull(),finalPrice=p.finalPrice.toDoubleOrNull(),isPaid=p.paid) })
+          if (!o.customerName.isNullOrBlank()) customerDao.insertFromOrder(o.customerName.trim(),o.phone.orEmpty().trim(),o.address.orEmpty().trim())
           savedId
          }
          runCatching {
@@ -167,7 +169,11 @@ class MainActivity:ComponentActivity(){
        Crossfade(targetState=page,label="tab-transition"){ activePage ->
        when(activePage){
         "Overview"->Overview(orders,allOrderPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{o,v->lifecycleScope.launch{dao.setReceived(o.id,v)}},{p,v->lifecycleScope.launch{orderPlantDao.setPaid(p.id,v)}})
-        "Customers"->CustomerHistory(orders,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
+        "Customers"->CustomerManagementScreen(customers,orders,allOrderPlants,
+         onSave={customer->lifecycleScope.launch{if(customer.id==0L)customerDao.insert(customer) else customerDao.update(customer)}},
+         onDelete={customer->lifecycleScope.launch{customerDao.delete(customer.id)}},
+         openOrder={o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
+        )
         "Calendar"->DispatchCalendar(orders,allOrderPlants){o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}}
         "Search"->GlobalSearch(orders,nurseries,allOrderPlants,nurseryPlants,{o->lifecycleScope.launch{editing=o;editingPlants=orderPlantDao.getForOrder(o.id);editor=true}},{n->selectedNursery=n})
         "Finances"->Finance(orders,allOrderPlants)
