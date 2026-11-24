@@ -29,7 +29,7 @@ data class Order(
   if (address.isNullOrBlank()) add("Delivery address")
   if (plantName.isNullOrBlank()) add("Plant name")
   if (plantCost == null) add("Actual plant cost")
-  if (sellingPrice == null) add("Selling price")
+  if (sellingPrice == null && finalPrice == null) add("Selling / final agreed price")
   if (expectedDispatchAt == null) add("Expected dispatch date")
   if (courierCharge == null) add("Courier charges")
  }
