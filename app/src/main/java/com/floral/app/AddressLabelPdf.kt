@@ -100,7 +100,6 @@ object AddressLabelPdf {
                 canvas.drawText("SHIP TO", left + 10f, textY, heading)
                 textY += 14f
                 label.toLines.forEach { canvas.drawText(it, left + 10f, textY, body); textY += 12f }
-                canvas.drawText("Cut along the dashed border", left + 10f, bottom - 7f, small)
             }
             y += rowHeight + gap
         }
