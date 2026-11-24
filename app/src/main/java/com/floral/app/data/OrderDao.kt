@@ -8,4 +8,6 @@ import kotlinx.coroutines.flow.Flow
  @Update suspend fun update(order: Order)
  @Query("UPDATE orders SET isReceived = :received, updatedAt = :now WHERE id = :id") suspend fun setReceived(id: Long, received: Boolean, now: Long = System.currentTimeMillis())
  @Query("UPDATE orders SET dispatchedAt = :timestamp, updatedAt = :now WHERE id = :id") suspend fun setDispatched(id: Long, timestamp: Long, now: Long = System.currentTimeMillis())
+ @Query("UPDATE orders SET customerName = :newName, phone = :newPhone, address = :newAddress, updatedAt = :now WHERE (:oldPhone != '' AND phone = :oldPhone) OR (:oldPhone = '' AND lower(customerName) = lower(:oldName))")
+ suspend fun updateCustomerDetails(oldPhone: String, oldName: String, newName: String, newPhone: String, newAddress: String, now: Long = System.currentTimeMillis())
 }
