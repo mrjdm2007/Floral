@@ -199,7 +199,7 @@ class MainActivity:ComponentActivity(){
           }
          )
         }
-        "Settings"->SenderAddressSettings(fromAddress){value->
+        "Settings"->BackupSettings(fromAddress,db){value->
          getSharedPreferences("floral_settings", MODE_PRIVATE).edit().putString("from_address",value).apply()
          fromAddress=value
          android.widget.Toast.makeText(this@MainActivity,"Sender address saved",android.widget.Toast.LENGTH_SHORT).show()
