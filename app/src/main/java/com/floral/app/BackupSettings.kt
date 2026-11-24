@@ -1,0 +1,85 @@
+package com.floral.app
+
+import android.app.Activity
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.floral.app.data.FloralDatabase
+
+@Composable
+fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (String) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var address by remember(currentAddress) { mutableStateOf(currentAddress) }
+    val exportPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri != null) runCatching { DataBackup.export(context, db, uri) }
+            .onSuccess { Toast.makeText(context, "Backup created successfully.", Toast.LENGTH_LONG).show() }
+            .onFailure { Toast.makeText(context, it.message ?: "Backup failed.", Toast.LENGTH_LONG).show() }
+    }
+    val importPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            val confirmed = android.app.AlertDialog.Builder(context)
+                .setTitle("Restore Floral backup?")
+                .setMessage("Restoring replaces the current Floral records and app-managed photos with the contents of this backup. Export a backup of the current data first if you may need it.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Restore") { _, _ ->
+                    runCatching { DataBackup.restore(context, uri) }
+                        .onSuccess {
+                            Toast.makeText(context, "Backup restored. Reloading Floral…", Toast.LENGTH_LONG).show()
+                            (context as? Activity)?.recreate()
+                        }
+                        .onFailure { Toast.makeText(context, it.message ?: "Restore failed.", Toast.LENGTH_LONG).show() }
+                }.create()
+            confirmed.show()
+        }
+    }
+
+    Column(
+        Modifier.fillMaxSize().padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Settings", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFF3EAD2))
+        Text("Default FROM address", style = MaterialTheme.typography.titleMedium, color = Color(0xFFA8C9A7))
+        Text("Paste the complete sender address exactly as you want it printed, including name, phone number, PIN code and all address lines.", color = Color(0xFFB5C5B8))
+        OutlinedTextField(
+            value = address,
+            onValueChange = { address = it },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 4,
+            maxLines = 8,
+            placeholder = { Text("Paste complete sender address here") }
+        )
+        Button(
+            onClick = { onSaveAddress(address) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA8C9A7), contentColor = Color(0xFF0B1B13))
+        ) { Text("Save sender address") }
+
+        Spacer(Modifier.height(8.dp))
+        Text("Data backup", style = MaterialTheme.typography.titleLarge, color = Color(0xFFF3EAD2))
+        Text("Create a ZIP backup of your Floral database, saved sender address and app-managed photo files. Keep a copy somewhere safe.", color = Color(0xFFB5C5B8))
+        Button(
+            onClick = { exportPicker.launch("Floral-backup.zip") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA8C9A7), contentColor = Color(0xFF0B1B13))
+        ) { Text("Create backup") }
+        OutlinedButton(
+            onClick = { importPicker.launch(arrayOf("application/zip", "application/octet-stream")) },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Restore from backup") }
+        Text(
+            "Note: photos selected directly from another app or gallery may remain linked to their original provider URI and might not transfer to a different phone. App-managed nursery photos are included.",
+            color = Color(0xFFB5C5B8),
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
