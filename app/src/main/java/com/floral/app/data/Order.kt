@@ -28,16 +28,16 @@ data class Order(
   if (phone.isNullOrBlank()) add("Phone number")
   if (address.isNullOrBlank()) add("Delivery address")
   if (plantName.isNullOrBlank()) add("Plant name")
-  if (photoUri.isNullOrBlank()) add("Plant photograph")
   if (plantCost == null) add("Actual plant cost")
   if (sellingPrice == null) add("Selling price")
-  if (finalPrice == null) add("Final customer price")
+  if (finalPrice == null) add("Final agreed price")
   if (expectedDispatchAt == null) add("Expected dispatch date")
-  if (dispatchedAt == null) add("Actual dispatch date")
   if (courierCharge == null) add("Courier charges")
  }
- val totalValue: Double? get() = if (sellingPrice != null && courierCharge != null) sellingPrice + courierCharge else null
- val profit: Double? get() = if (plantCost != null && sellingPrice != null) sellingPrice - plantCost else null
- // Courier is a pass-through fee; it is not required to calculate plant margin.
- val financialsComplete: Boolean get() = plantCost != null && sellingPrice != null
+ // The final agreed plant amount takes precedence over the initial/listed selling price.
+ // Courier is added to the customer total but excluded from plant margin as a pass-through.
+ val effectiveSalePrice: Double? get() = finalPrice ?: sellingPrice
+ val totalValue: Double? get() = if (effectiveSalePrice != null && courierCharge != null) effectiveSalePrice + courierCharge else null
+ val profit: Double? get() = if (plantCost != null && effectiveSalePrice != null) effectiveSalePrice - plantCost else null
+ val financialsComplete: Boolean get() = plantCost != null && effectiveSalePrice != null
 }
