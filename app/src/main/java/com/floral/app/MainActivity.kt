@@ -208,7 +208,7 @@ class MainActivity:ComponentActivity(){
 
 @Composable private fun Overview(orders:List<Order>,plants:List<OrderPlant>,open:(Order)->Unit,toggle:(Order,Boolean)->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
  val now=Calendar.getInstance()
- fun inPeriod(o:Order,p:Int):Boolean {val c=Calendar.getInstance().apply{timeInMillis=o.dispatchedAt?:o.createdAt};return when(p){Calendar.WEEK_OF_YEAR->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)&&c.get(Calendar.WEEK_OF_YEAR)==now.get(Calendar.WEEK_OF_YEAR);Calendar.MONTH->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)&&c.get(Calendar.MONTH)==now.get(Calendar.MONTH);else->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)}}
+ fun inPeriod(o:Order,p:Int):Boolean {val c=Calendar.getInstance().apply{timeInMillis=o.dispatchedAt?:o.createdAt};return when(p){Calendar.WEEK_OF_YEAR->c.getWeekYear()==now.getWeekYear()&&c.get(Calendar.WEEK_OF_YEAR)==now.get(Calendar.WEEK_OF_YEAR);Calendar.MONTH->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)&&c.get(Calendar.MONTH)==now.get(Calendar.MONTH);else->c.get(Calendar.YEAR)==now.get(Calendar.YEAR)}}
  val complete=orders.filter{it.financialsComplete}
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
   Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(23.dp)){Column(Modifier.fillMaxWidth().padding(20.dp)){Text("OVERALL PROFIT",color=Leaf,fontSize=11.sp,letterSpacing=1.3.sp);Text(money(complete.sumOf{it.profit?:0.0}),color=Cream,fontSize=34.sp,fontWeight=FontWeight.Bold);Text("${complete.size} orders with complete financial details",color=Muted,fontSize=12.sp)}}
