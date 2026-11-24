@@ -59,11 +59,14 @@ fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (S
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Settings", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFF3EAD2))
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("PREFERENCES", color = Color(0xFFA8C9A7), style = MaterialTheme.typography.labelSmall, letterSpacing = 1.5.sp)
+            Text("Settings", style = MaterialTheme.typography.headlineMedium, color = Color(0xFFF3EAD2), fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+        }
         Card(
             colors = CardDefaults.cardColors(containerColor = Color(0xCC1D3B2D)),
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.09f)),
-            shape = RoundedCornerShape(20.dp)
+            shape = RoundedCornerShape(22.dp)
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Default FROM address", style = MaterialTheme.typography.titleMedium, color = Color(0xFFA8C9A7))
@@ -89,6 +92,7 @@ fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (S
             shape = RoundedCornerShape(20.dp)
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("BACKUP & RESTORE", style = MaterialTheme.typography.labelSmall, color = Color(0xFFA8C9A7), letterSpacing = 1.3.sp)
                 Text("Data backup", style = MaterialTheme.typography.titleLarge, color = Color(0xFFF3EAD2))
                 Text("Create a ZIP backup of your orders, nursery profiles, plant and stock records, saved sender address, and every linked photo. Keep a copy somewhere safe.", color = Color(0xFFB5C5B8))
                 Button(
