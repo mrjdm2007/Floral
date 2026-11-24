@@ -101,16 +101,22 @@ class MainActivity:ComponentActivity(){
    MaterialTheme(colorScheme=darkColorScheme(primary=Leaf,secondary=Cream,background=Deep,surface=Panel)){
     Surface(Modifier.fillMaxSize(),color=Deep){
      when {
-      editor -> MultiPlantOrderEditor(editing,editingPlants,{editor=false;editing=null;editingPlants=emptyList()}){o,plants->
+      editor -> MultiPlantOrderEditor(editing,editingPlants,{editor=false;editing=null;editingPlants=emptyList()}){o,plants,onComplete->
        lifecycleScope.launch {
-        val id=db.withTransaction {
-         val savedId=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id}
-         orderPlantDao.deleteForOrder(savedId)
-         orderPlantDao.insertAll(plants.map { p -> OrderPlant(orderId=savedId,name=p.name,plantCost=p.cost.toDoubleOrNull(),sellingPrice=p.selling.toDoubleOrNull(),finalPrice=p.finalPrice.toDoubleOrNull(),isPaid=p.paid) })
-         savedId
+        try {
+         val id=db.withTransaction {
+          val savedId=if(o.id==0L)dao.insert(o) else {dao.update(o);o.id}
+          orderPlantDao.deleteForOrder(savedId)
+          orderPlantDao.insertAll(plants.map { p -> OrderPlant(orderId=savedId,name=p.name,plantCost=p.cost.toDoubleOrNull(),sellingPrice=p.selling.toDoubleOrNull(),finalPrice=p.finalPrice.toDoubleOrNull(),isPaid=p.paid) })
+          savedId
+         }
+         if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt)
+         editor=false;editing=null;editingPlants=emptyList()
+         onComplete(true)
+        } catch(error: Exception) {
+         android.widget.Toast.makeText(this@MainActivity,error.message ?: "Could not save order",android.widget.Toast.LENGTH_LONG).show()
+         onComplete(false)
         }
-        if(o.dispatchedAt!=null)DispatchReminder.cancel(this@MainActivity,id) else DispatchReminder.schedule(this@MainActivity,id,o.expectedDispatchAt)
-        editor=false;editing=null;editingPlants=emptyList()
        }
       }
       nurseryEditor -> NurseryEditor(nurseryToEdit,{nurseryEditor=false;nurseryToEdit=null}){n->
