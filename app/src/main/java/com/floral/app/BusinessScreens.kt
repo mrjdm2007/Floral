@@ -84,45 +84,104 @@ fun DispatchCalendar(orders: List<Order>, plants: List<OrderPlant>, openOrder: (
         set(Calendar.DAY_OF_MONTH, 1)
         add(Calendar.MONTH, monthOffset)
     }
+    var selectedDay by remember(monthOffset) {
+        mutableIntStateOf(if (monthOffset == 0) Calendar.getInstance().get(Calendar.DAY_OF_MONTH) else 1)
+    }
+    val year = month.get(Calendar.YEAR)
+    val monthIndex = month.get(Calendar.MONTH)
     val monthTitle = java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault()).format(month.time)
+    val daysInMonth = month.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val firstWeekdayOffset = (month.get(Calendar.DAY_OF_WEEK) + 5) % 7 // Monday-first
+    fun eventDate(order: Order): Calendar? {
+        val timestamp = order.dispatchedAt ?: order.expectedDispatchAt ?: return null
+        return Calendar.getInstance().apply { timeInMillis = timestamp }
+    }
     val monthOrders = orders.filter { order ->
-        val due = order.expectedDispatchAt ?: order.dispatchedAt ?: return@filter false
-        val c = Calendar.getInstance().apply { timeInMillis = due }
-        c.get(Calendar.YEAR) == month.get(Calendar.YEAR) && c.get(Calendar.MONTH) == month.get(Calendar.MONTH)
-    }.sortedBy { it.expectedDispatchAt ?: it.dispatchedAt ?: Long.MAX_VALUE }
+        val c = eventDate(order) ?: return@filter false
+        c.get(Calendar.YEAR) == year && c.get(Calendar.MONTH) == monthIndex
+    }
+    val selectedOrders = monthOrders.filter { order ->
+        eventDate(order)?.get(Calendar.DAY_OF_MONTH) == selectedDay
+    }.sortedBy { it.customerName.orEmpty().lowercase() }
+    val eventDays = monthOrders.mapNotNull { eventDate(it)?.get(Calendar.DAY_OF_MONTH) }.toSet()
+    val weekdayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Dispatch calendar", color = BizCream, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
         Card(colors = CardDefaults.cardColors(containerColor = BizForest), shape = RoundedCornerShape(16.dp)) {
-            Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = { monthOffset-- }) { Text("‹", color = BizLeaf, fontSize = 22.sp) }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.CalendarMonth, null, tint = BizLeaf)
-                    Text(monthTitle, color = BizCream, fontWeight = FontWeight.SemiBold)
+            Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(onClick = { monthOffset--; selectedDay = 1 }) { Text("‹", color = BizLeaf, fontSize = 22.sp) }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.CalendarMonth, null, tint = BizLeaf)
+                        Text(monthTitle, color = BizCream, fontWeight = FontWeight.SemiBold)
+                    }
+                    TextButton(onClick = { monthOffset++; selectedDay = 1 }) { Text("›", color = BizLeaf, fontSize = 22.sp) }
                 }
-                TextButton(onClick = { monthOffset++ }) { Text("›", color = BizLeaf, fontSize = 22.sp) }
+                Row(Modifier.fillMaxWidth()) {
+                    weekdayLabels.forEach { label ->
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            Text(label, color = BizMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+                val cellCount = firstWeekdayOffset + daysInMonth
+                val weekCount = (cellCount + 6) / 7
+                repeat(weekCount) { week ->
+                    Row(Modifier.fillMaxWidth()) {
+                        repeat(7) { column ->
+                            val day = week * 7 + column - firstWeekdayOffset + 1
+                            if (day in 1..daysInMonth) {
+                                val selected = day == selectedDay
+                                val hasEvents = day in eventDays
+                                Surface(
+                                    modifier = Modifier.weight(1f).padding(2.dp).height(39.dp)
+                                        .clickable { selectedDay = day },
+                                    color = if (selected) BizLeaf else Color.Transparent,
+                                    shape = RoundedCornerShape(9.dp)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center) {
+                                        Text(day.toString(), color = if (selected) BizForest else BizCream,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 12.sp)
+                                        Text(if (hasEvents) "•" else " ", color = if (selected) BizForest else BizLeaf,
+                                            fontSize = 11.sp, lineHeight = 9.sp)
+                                    }
+                                }
+                            } else {
+                                Spacer(Modifier.weight(1f).height(39.dp))
+                            }
+                        }
+                    }
+                }
             }
         }
-        Text("${monthOrders.size} dispatch record(s)", color = BizMuted, fontSize = 12.sp)
-        if (monthOrders.isEmpty()) Text("No dispatches scheduled for this month.", color = BizMuted)
-        else LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
-            items(monthOrders, key = { it.id }) { order ->
-                val timestamp = order.expectedDispatchAt ?: order.dispatchedAt!!
-                Card(Modifier.fillMaxWidth().clickable { openOrder(order) },
-                    colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
-                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.width(58.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(java.text.SimpleDateFormat("dd", java.util.Locale.getDefault()).format(java.util.Date(timestamp)),
-                                color = BizLeaf, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                            Text(java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault()).format(java.util.Date(timestamp)),
-                                color = BizMuted, fontSize = 10.sp)
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text(order.customerName ?: "Customer not entered", color = BizCream, fontWeight = FontWeight.SemiBold)
-                            Text(plants.filter { it.orderId == order.id }.joinToString(", ") { it.name }.ifBlank { order.plantName ?: "Plant order" }, color = BizMuted, fontSize = 12.sp)
-                            Text(if (order.dispatchedAt != null) "Dispatched" else "Expected dispatch",
-                                color = BizLeaf, fontSize = 10.sp)
+        Text("${monthOrders.size} dispatch record(s) · ${selectedOrders.size} on ${selectedDay} ${java.text.SimpleDateFormat("MMM", java.util.Locale.getDefault()).format(month.time)}",
+            color = BizMuted, fontSize = 12.sp)
+        if (selectedOrders.isEmpty()) {
+            Text("No dispatches on this day. Select a marked date to view its orders.", color = BizMuted)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
+                items(selectedOrders, key = { it.id }) { order ->
+                    val timestamp = eventDate(order)?.timeInMillis ?: 0L
+                    Card(Modifier.fillMaxWidth().clickable { openOrder(order) },
+                        colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.width(58.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(java.text.SimpleDateFormat("dd", java.util.Locale.getDefault()).format(java.util.Date(timestamp)),
+                                    color = BizLeaf, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                                Text(java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault()).format(java.util.Date(timestamp)),
+                                    color = BizMuted, fontSize = 10.sp)
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(order.customerName ?: "Customer not entered", color = BizCream, fontWeight = FontWeight.SemiBold)
+                                Text(plants.filter { it.orderId == order.id }.joinToString(", ") { it.name }
+                                    .ifBlank { order.plantName ?: "Plant order" }, color = BizMuted, fontSize = 12.sp)
+                                Text(if (order.dispatchedAt != null) "Actually dispatched" else "Expected dispatch",
+                                    color = BizLeaf, fontSize = 10.sp)
+                            }
                         }
                     }
                 }
