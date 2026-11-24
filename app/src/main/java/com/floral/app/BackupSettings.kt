@@ -107,10 +107,5 @@ fun BackupSettings(currentAddress: String, db: FloralDatabase, onSaveAddress: (S
                 )
             }
         }
-        Text(
-            "Floral copies linked photos into the backup and restores them into app-managed storage. If a photo permission has expired, the backup will stop and tell you which record needs its photo selected again.",
-            color = Color(0xFFB5C5B8),
-            style = MaterialTheme.typography.bodySmall
-        )
     }
 }
