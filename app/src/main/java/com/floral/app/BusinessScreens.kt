@@ -194,24 +194,23 @@ fun DispatchCalendar(orders: List<Order>, plants: List<OrderPlant>, openOrder: (
 }
 
 @Composable
-fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, plants: List<OrderPlant>, onOpenOrder: (Order) -> Unit) {
+fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, plants: List<OrderPlant>, nurseryPlants: List<com.floral.app.data.NurseryPlant>, onOpenOrder: (Order) -> Unit, onOpenNursery: (Nursery) -> Unit) {
     var query by remember { mutableStateOf("") }
-    val matches = if (query.isBlank()) emptyList() else orders.filter { o ->
-        listOfNotNull(o.customerName, o.phone, o.address, o.plantName, o.notes)
-            .any { it.contains(query, true) } || plants.any { it.orderId == o.id && it.name.contains(query, true) }
+    val matches = if (query.isBlank()) emptyList() else orders.filter { order ->
+        listOfNotNull(order.customerName, order.phone, order.address, order.plantName, order.notes).any { it.contains(query, true) } ||
+            plants.any { it.orderId == order.id && it.name.contains(query, true) }
     }
-    val nurseryMatches = if (query.isBlank()) emptyList() else nurseries.filter { n ->
-        listOfNotNull(n.name, n.address, n.phone).any { it.contains(query, true) }
+    val nurseryMatches = if (query.isBlank()) emptyList() else nurseries.filter { nursery ->
+        listOfNotNull(nursery.name, nursery.address, nursery.phone, nursery.notes).any { it.contains(query, true) } ||
+            nurseryPlants.any { it.nurseryId == nursery.id && listOfNotNull(it.name, it.notes).any { value -> value.contains(query, true) } }
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Search Floral", color = BizCream, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
-        OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
-            placeholder = { Text("Customer, phone, plant or order") })
+        OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Customer, phone, plant, note or nursery") })
         if (query.isNotBlank() && matches.isEmpty() && nurseryMatches.isEmpty()) Text("No matching records.", color = BizMuted)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
-            items(matches, key = { "order-${it.id}" }) { order ->
-                Card(Modifier.fillMaxWidth().clickable { onOpenOrder(order) },
-                    colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
+            items(matches, key = { "order-" + it.id }) { order ->
+                Card(Modifier.fillMaxWidth().clickable { onOpenOrder(order) }, colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(12.dp)) {
                         Text(plants.filter { it.orderId == order.id }.joinToString(", ") { it.name }.ifBlank { order.plantName ?: "Plant order" }, color = BizCream, fontWeight = FontWeight.SemiBold)
                         Text(order.customerName ?: "Customer not entered", color = BizLeaf, fontSize = 12.sp)
@@ -219,17 +218,18 @@ fun GlobalSearch(orders: List<Order>, nurseries: List<Nursery>, plants: List<Ord
                     }
                 }
             }
-            items(nurseryMatches, key = { "nursery-${it.id}" }) { nursery ->
-                Card(colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
+            items(nurseryMatches, key = { "nursery-" + it.id }) { nursery ->
+                val matchedPlants = nurseryPlants.filter { it.nurseryId == nursery.id && listOfNotNull(it.name, it.notes).any { value -> value.contains(query, true) } }
+                Card(Modifier.fillMaxWidth().clickable { onOpenNursery(nursery) }, colors = CardDefaults.cardColors(containerColor = BizPanel), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(12.dp)) {
                         Text(nursery.name ?: "Unnamed nursery", color = BizCream, fontWeight = FontWeight.SemiBold)
                         Text(nursery.address ?: "Nursery record", color = BizMuted, fontSize = 11.sp)
-                        Text("Nursery", color = BizLeaf, fontSize = 10.sp)
+                        if (matchedPlants.isNotEmpty()) Text("Plants: " + matchedPlants.joinToString(", ") { it.name ?: "Unnamed plant" }, color = BizLeaf, fontSize = 11.sp)
+                        else Text("Nursery profile", color = BizLeaf, fontSize = 10.sp)
                     }
                 }
             }
         }
     }
 }
-
 private fun businessDate(timestamp: Long): String = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
