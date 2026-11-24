@@ -273,14 +273,19 @@ class MainActivity:ComponentActivity(){
  }
 }
 @Composable private fun OrderCard(o:Order,plants:List<OrderPlant>,open:()->Unit,toggleReceived:()->Unit,togglePaid:(OrderPlant,Boolean)->Unit){
- Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(18.dp)){
+ Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(20.dp),elevation=CardDefaults.cardElevation(defaultElevation=3.dp)){
   Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
    Row(Modifier.fillMaxWidth().clickable(onClick=open),verticalAlignment=Alignment.CenterVertically){
     if(o.photoUri!=null) AsyncImage(Uri.parse(o.photoUri),null,Modifier.size(58.dp)) else Box(Modifier.size(58.dp).background(Forest,RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Spa,null,tint=Leaf)}
     Spacer(Modifier.width(11.dp))
     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
      Text(o.customerName?: "Customer not entered",color=Cream,fontWeight=FontWeight.SemiBold)
-     Text(if(o.dispatchedAt!=null)"Dispatched · ${date(o.dispatchedAt)}" else o.expectedDispatchAt?.let{"Dispatch due · ${date(it)}"}?:"Dispatch date not set",color=Muted,fontSize=10.sp)
+     Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){
+      Surface(color=if(o.dispatchedAt!=null)Forest else Color(0xFF493B22),shape=RoundedCornerShape(50)){
+       Text(if(o.dispatchedAt!=null)"SENT" else "PENDING",color=if(o.dispatchedAt!=null)Leaf else Color(0xFFFFD98A),fontSize=8.sp,fontWeight=FontWeight.Bold,modifier=Modifier.padding(horizontal=8.dp,vertical=4.dp))
+      }
+      Text(if(o.dispatchedAt!=null)"Dispatched · ${date(o.dispatchedAt)}" else o.expectedDispatchAt?.let{"Due · ${date(it)}"}?:"Dispatch date not set",color=Muted,fontSize=10.sp)
+     }
      Text(if(o.missingFields.isEmpty())"Order details complete" else "${o.missingFields.size} details left",color=Muted,fontSize=10.sp)
      if(o.notes.isNotBlank())Text("Note: ${o.notes}",color=Cream,fontSize=10.sp,maxLines=1)
     }
