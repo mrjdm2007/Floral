@@ -14,7 +14,11 @@ object DataBackup {
     private val photoTables = listOf("orders", "order_plants", "nurseries", "nursery_plants")
 
     fun export(context: Context, db: FloralDatabase, destination: Uri) {
-        db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)").use { }
+        db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)").use { cursor ->
+            require(cursor.moveToFirst() && cursor.getInt(0) == 0) {
+                "Floral is busy saving data. Wait a moment and try the backup again."
+            }
+        }
         val database = context.getDatabasePath("floral.db")
         require(database.exists()) { "Floral database was not found." }
         context.contentResolver.openOutputStream(destination, "w")?.use { output ->
@@ -109,7 +113,10 @@ object DataBackup {
             val mappings = photoManifest.lineSequence().filter { it.isNotBlank() }.map { line ->
                 val parts = line.split('|')
                 require(parts.size == 3 && parts[0] in photoTables) { "The backup photo index is invalid." }
-                Triple(parts[0], parts[1].toLong(), parts[2])
+                val recordId = parts[1].toLong()
+                val expectedEntry = "photo_refs/${parts[0]}/$recordId.bin"
+                require(parts[2] == expectedEntry) { "The backup photo index is invalid." }
+                Triple(parts[0], recordId, parts[2])
             }.toList()
             mappings.forEach { (_, _, entry) ->
                 require(File(staging, entry).exists()) { "A photo is missing from this backup." }
