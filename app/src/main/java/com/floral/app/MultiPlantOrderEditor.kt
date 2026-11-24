@@ -157,7 +157,9 @@ fun MultiPlantOrderEditor(
             val primary = namedPlants.firstOrNull() ?: PlantEntryDraft()
             val totalCost = if (namedPlants.isNotEmpty() && namedPlants.all { it.cost.toDoubleOrNull() != null }) namedPlants.sumOf { it.cost.toDouble() } else null
             val totalSelling = if (namedPlants.isNotEmpty() && namedPlants.all { it.selling.toDoubleOrNull() != null }) namedPlants.sumOf { it.selling.toDouble() } else null
-            val totalFinal = if (namedPlants.isNotEmpty() && namedPlants.all { it.finalPrice.toDoubleOrNull() != null }) namedPlants.sumOf { it.finalPrice.toDouble() } else null
+            val totalFinal = if (namedPlants.isNotEmpty() && namedPlants.all { (it.finalPrice.toDoubleOrNull() ?: it.selling.toDoubleOrNull()) != null }) {
+                namedPlants.sumOf { it.finalPrice.toDoubleOrNull() ?: it.selling.toDouble() }
+            } else null
             save(Order(
                 id = order?.id ?: 0, customerName = customer.trim().ifBlank { null },
                 phone = phone.trim().ifBlank { null }, address = address.trim().ifBlank { null },
