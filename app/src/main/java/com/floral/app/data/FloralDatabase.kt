@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Order::class, Nursery::class, NurseryPlant::class, OrderPlant::class],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class FloralDatabase : RoomDatabase() {
@@ -75,6 +75,12 @@ abstract class FloralDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE nursery_plants ADD COLUMN stock INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         @Volatile private var instance: FloralDatabase? = null
 
         fun get(context: Context): FloralDatabase = instance ?: synchronized(this) {
@@ -82,7 +88,7 @@ abstract class FloralDatabase : RoomDatabase() {
                 context.applicationContext,
                 FloralDatabase::class.java,
                 "floral.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
         }
     }
 }
